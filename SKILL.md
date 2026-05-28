@@ -32,6 +32,7 @@ description: >-
 - **断点统一以项目 CSS 实际值为准**。本 skill 所有示例使用 Shopify Dawn 约定的 **749 / 750px**（移动 ≤749px，PC ≥750px）。实际改写时把示例里的 749/750 替换成项目 CSS 中真实的隐藏断点与媒体查询。
 - CSS 选择器优先 `#shopify-section-{{ section.id }}` 范围化，避免污染全局。
 - 用 `image_url` / `image_tag`，**禁止新增 `img_url`**（已废弃）。
+- **`widths` 统一为逗号分隔字符串**（对齐 Shopify 官方 `image_tag: widths: '200, 300, 400'` 约定）。`image_tag` 直接传字符串；手写 `<source srcset>` 需要遍历时显式 `| split: ','` 转数组——单一来源，不混用两种形态。
 - 投流落地页改动尤其谨慎，**必须保留** id、业务 class、依赖 DOM 的 inline script / 第三方脚本钩子。
 
 ## 交互门禁（必须遵守）
@@ -142,25 +143,33 @@ Liquid 的 `image_url` / `image_tag` 在 image 为 `blank` 时会渲染异常或
 ### A. PC/移动不同图 → `<picture>`
 
 ```liquid
+{%- assign desktop_widths = '800,1000,1200,1600,2000,2400' -%}
+{%- assign mobile_widths = '390,480,640,750,960,1200' -%}
+{%- assign mobile_widths_arr = mobile_widths | split: ',' -%}
+{%- assign desktop_sizes = '(min-width: 750px) min(1360px, calc(100vw - 156px))' -%}
+{%- assign mobile_sizes = 'calc(100vw - 24px)' -%}
+{%- assign image_loading = 'eager' -%}
+{%- assign image_fetchpriority = 'high' -%}
+
 {%- if desktop_image != blank -%}
 <picture>
   {%- if mobile_image != blank -%}
     <source
       media="(max-width: 749px)"
-      srcset="{% for w in mobile_widths %}{{ mobile_image | image_url: width: w }} {{ w }}w{% unless forloop.last %}, {% endunless %}{% endfor %}"
+      srcset="{% for w in mobile_widths_arr %}{{ mobile_image | image_url: width: w }} {{ w }}w{% unless forloop.last %}, {% endunless %}{% endfor %}"
       sizes="{{ mobile_sizes }}"
     >
   {%- endif -%}
   {{-
     desktop_image
-    | image_url: width: desktop_max
+    | image_url: width: 2400
     | image_tag:
-      class: '...',
+      class: 'banner__img',
       loading: image_loading,
       fetchpriority: image_fetchpriority,
       sizes: desktop_sizes,
       widths: desktop_widths,
-      alt: alt_text
+      alt: desktop_image.alt
   -}}
 </picture>
 {%- endif -%}
@@ -169,24 +178,34 @@ Liquid 的 `image_url` / `image_tag` 在 image 为 `blank` 时会渲染异常或
 - `<source>` 的 `media` 必须与 CSS 隐藏断点**一致**（默认对齐 749px，按项目实际值调整）
 - `<img>` 的 `sizes` 给 PC；`<source>` 的 `sizes` 给移动
 - 移动图未配时：不输出 `<source>`，自动 fallback 到 `<img>`
-- 布局：必要时加 `#shopify-section-{{ section.id }} ... picture { display: contents; }`
+- `desktop_widths` 直接传字符串给 `image_tag`；`mobile_widths` 需先 `| split: ','` 再供 `<source>` 循环
+- 布局：**当父元素用 `position: relative` / `flex` / `grid` 直接对子 `<img>` 做定位或对齐时**，需要加 `#shopify-section-{{ section.id }} ... picture { display: contents; }`。否则 `<picture>` 作为 inline 元素会插入到父子之间，打断原有 absolute 定位、flex 子项布局或 grid 占位（不需要时不要加，徒增样式覆盖面）
 
 ### B. 单图多尺寸 → `image_tag` + `widths`
 
+`assign` 出来的字符串变量可以直接传入 `image_tag`，与硬编码字符串等价——首选 `assign`，便于复用与从 CSS 推导：
+
 ```liquid
+{%- assign card_sizes = '(min-width: 750px) 150px, 180px' -%}
+{%- assign card_widths = '150,180,300,360' -%}
+
 {%- if image != blank -%}
 {{-
   image
-  | image_url: width: max_width
+  | image_url: width: 360
   | image_tag:
+    class: 'card__img',
     loading: 'lazy',
     fetchpriority: 'low',
-    sizes: '(min-width: 750px) 150px, 180px',
-    widths: '150,180,300,360',
-    alt: alt_text
+    sizes: card_sizes,
+    widths: card_widths,
+    alt: image.alt
 -}}
 {%- endif -%}
 ```
+
+- `image_url: width:` 设上限（≈ 渲染宽 × 2，对齐 `widths` 最大值）
+- `sizes` / `widths` 变量名无要求，传字符串即可；`image_tag` 内部会自行 split
 
 ### C. loading / fetchpriority
 
@@ -305,12 +324,32 @@ P0 已完成。是否继续 P1？
 **Liquid assigns：**
 
 ```liquid
-assign mobile_sizes = 'calc(100vw - 24px)'
-assign top_desktop_sizes = '(min-width: 750px) min(1204px, calc(100vw - 156px))'
-assign split_desktop_sizes = '(min-width: 750px) calc((min(1204px, 100vw - 156px) - 30px) / 2)'
-assign top_desktop_widths = '600,800,1000,1200,1600,2000,2400'
-assign split_desktop_widths = '320,480,640,800,1000,1200'
+{%- assign mobile_sizes = 'calc(100vw - 24px)' -%}
+{%- assign top_desktop_sizes = '(min-width: 750px) min(1204px, calc(100vw - 156px))' -%}
+{%- assign split_desktop_sizes = '(min-width: 750px) calc((min(1204px, 100vw - 156px) - 30px) / 2)' -%}
+{%- assign top_desktop_widths = '600,800,1000,1200,1600,2000,2400' -%}
+{%- assign split_desktop_widths = '320,480,640,800,1000,1200' -%}
 ```
+
+**衔接示例（顶部全宽图 → 模式 B）：**
+
+```liquid
+{%- if section.settings.top_image != blank -%}
+{{-
+  section.settings.top_image
+  | image_url: width: 2400
+  | image_tag:
+    class: 'solution-img__top',
+    loading: 'eager',
+    fetchpriority: 'high',
+    sizes: top_desktop_sizes,
+    widths: top_desktop_widths,
+    alt: section.settings.top_image.alt
+-}}
+{%- endif -%}
+```
+
+分栏图把 `top_desktop_sizes` / `top_desktop_widths` 换成 `split_desktop_sizes` / `split_desktop_widths` 即可。
 
 **DevTools 对比点：**
 
@@ -324,27 +363,77 @@ assign split_desktop_widths = '320,480,640,800,1000,1200'
 **P0 范围：** `.slideshow__image.box`（背景 Banner）、`.bf-ct-swiper-image`（产品轮播主图）。
 未改：`.discount_tag_wrapper img`、`.cover_image_right_wrapper img`（P1/P2）。
 
-**背景 Banner：**
+**背景 Banner（PC/移动不同图 → 模式 A）：**
 
 ```liquid
-assign banner_sizes = '100vw'
-assign banner_desktop_widths = '800,1000,1200,1600,1920,2400'
-assign banner_mobile_widths = '390,480,640,750,960,1200'
+{%- assign banner_sizes = '100vw' -%}
+{%- assign banner_desktop_widths = '800,1000,1200,1600,1920,2400' -%}
+{%- assign banner_mobile_widths = '390,480,640,750,960,1200' -%}
+{%- assign banner_mobile_widths_arr = banner_mobile_widths | split: ',' -%}
 ```
 
 - `<picture>` 断点：`749px`（对齐 `hideMobile` / `hideDesktop`）
-- `picture { display: contents }` 保持 absolute 布局
+- `.slideshow__image.box` 父级用 `position: absolute` 拉满，因此需要 `#shopify-section-{{ section.id }} picture { display: contents; }`，让 picture 在布局上"透明"，子 img 仍受父级 absolute 控制
 - 已知权衡：`image_url` 上限 2400，2x 超大屏可能比旧版 3840 原图略软；如需更清晰提升到 3840
 
 **产品图：**
 
 ```liquid
-assign product_card_sizes = '(min-width: 750px) 150px, 180px'
-assign product_card_widths = '150,180,300,360'
-{# image_url: width: 360 #}
+{%- assign product_card_sizes = '(min-width: 750px) 150px, 180px' -%}
+{%- assign product_card_widths = '150,180,300,360' -%}
+
+{%- if product.featured_image != blank -%}
+{{-
+  product.featured_image
+  | image_url: width: 360
+  | image_tag:
+    class: 'bf-ct-swiper-image',
+    loading: 'lazy',
+    fetchpriority: 'low',
+    sizes: product_card_sizes,
+    widths: product_card_widths,
+    alt: product.title
+-}}
+{%- endif -%}
 ```
 
 CSS：`≥750px` → 150×150；`≤749px` → 180×180。
+
+### 示例 3：P1 — 首屏外卡片图（接 bf-banner P0 之后）
+
+P0 处理完 Banner 与首屏轮播主图后，P1 通常是**首屏外的卡片/推荐位主图**——例如下文 `.cover_image_right_wrapper img` 这种「单图多尺寸、不需要 PC/移动分图」的场景，套**模式 B**：
+
+```liquid
+{%- assign cover_sizes = '(min-width: 750px) calc((min(1360px, 100vw - 156px) - 30px) / 2), calc(100vw - 24px)' -%}
+{%- assign cover_widths = '320,480,640,800,1000,1200,1600' -%}
+
+{%- if block.settings.cover_image != blank -%}
+{{-
+  block.settings.cover_image
+  | image_url: width: 1600
+  | image_tag:
+    class: 'cover_image_right',
+    loading: 'lazy',
+    fetchpriority: 'low',
+    sizes: cover_sizes,
+    widths: cover_widths,
+    alt: block.settings.cover_image.alt
+-}}
+{%- endif -%}
+```
+
+`.discount_tag_wrapper img` 这类**固定 <100px 的小角标**则归 P2，按"B 的简化版"——只补 `image_url: width:` 与 `loading: 'lazy'`，不需要 srcset：
+
+```liquid
+{%- if block.settings.discount_tag != blank -%}
+<img
+  src="{{ block.settings.discount_tag | image_url: width: 120 }}"
+  width="60" height="60"
+  loading="lazy" fetchpriority="low"
+  alt="{{ block.settings.discount_tag.alt }}"
+>
+{%- endif -%}
+```
 
 ### 反例：不要这样做
 
