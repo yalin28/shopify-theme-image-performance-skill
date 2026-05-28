@@ -36,23 +36,26 @@ usage() {
 
 选项:
   --cursor          安装到 ~/.cursor/skills/<skill-name>/
-  --codex           安装到 ~/.codex/skills/<skill-name>/
+  --codex           安装到 ~/.agents/skills/<skill-name>/，并兼容 ~/.codex/skills/<skill-name>/
   --claude          安装到 ~/.claude/skills/<skill-name>/
   --project [DIR]   安装到 <DIR>/.cursor/skills/<skill-name>/（默认当前目录）
-  --all             安装到 Cursor + Codex（默认）
+  --all             安装到 Cursor + Codex + Claude Code
   --force           覆盖已存在的安装目录
   --link            使用符号链接（适合本地开发本仓库）
   -h, --help        显示帮助
 
 示例:
-  ./scripts/install.sh --all
   ./scripts/install.sh --cursor --force
+  ./scripts/install.sh --codex
+  ./scripts/install.sh --claude
   ./scripts/install.sh --project /path/to/my-shopify-theme
 
-远程一键（从 GitHub 拉取 SKILL 文件后安装）:
-  curl -fsSL https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.sh | bash -s -- --all
+远程安装（从 GitHub 拉取 Skill 文件后安装，按平台选择）:
+  curl -fsSL https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.sh | bash -s -- --cursor
+  curl -fsSL https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.sh | bash -s -- --codex
+  curl -fsSL https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.sh | bash -s -- --claude
 
-Windows 用户请使用 PowerShell: .\scripts\install.ps1 -All（见 README）
+Windows 用户请使用 PowerShell: .\scripts\install.ps1 -Cursor / -Codex / -Claude（见 README）
 EOF
 }
 
@@ -121,11 +124,21 @@ install_one() {
   echo "已安装 -> ${dest}"
 }
 
+install_codex() {
+  local standard_root="${CODEX_AGENT_SKILLS_DIR:-${HOME}/.agents/skills}"
+  local legacy_root="${CODEX_HOME:-${HOME}/.codex}/skills"
+
+  install_one "${standard_root}"
+  if [[ "${legacy_root}" != "${standard_root}" ]]; then
+    install_one "${legacy_root}"
+  fi
+}
+
 parse_args() {
   if [[ $# -eq 0 ]]; then
-    INSTALL_CURSOR=1
-    INSTALL_CODEX=1
-    return
+    usage
+    echo "" >&2
+    die "请明确选择安装目标：--cursor、--codex、--claude、--project 或 --all"
   fi
 
   while [[ $# -gt 0 ]]; do
@@ -140,10 +153,12 @@ parse_args() {
           PROJECT_ROOT="$1"
           shift
         fi
+        continue
         ;;
       --all)
         INSTALL_CURSOR=1
         INSTALL_CODEX=1
+        INSTALL_CLAUDE=1
         ;;
       --force) FORCE=1 ;;
       --link) USE_LINK=1 ;;
@@ -172,7 +187,7 @@ main() {
     install_one "${HOME}/.cursor/skills"
   fi
   if [[ "${INSTALL_CODEX}" -eq 1 ]]; then
-    install_one "${CODEX_HOME:-${HOME}/.codex}/skills"
+    install_codex
   fi
   if [[ "${INSTALL_CLAUDE}" -eq 1 ]]; then
     install_one "${HOME}/.claude/skills"
@@ -183,7 +198,7 @@ main() {
   fi
 
   echo ""
-  echo "完成。验证: ls ~/.cursor/skills/${SKILL_NAME}/SKILL.md（或 clone 仓库后运行 ./scripts/verify-install.sh）"
+  echo "完成。验证: ./scripts/verify-install.sh"
   echo "使用: 在 Shopify 主题项目中对 Agent 说「按 shopify-theme-image-performance 分析这个 section 的图片加载」"
   if [[ "${INSTALL_CODEX}" -eq 1 ]]; then
     echo "Codex: 安装后请重启以加载新 Skill。"

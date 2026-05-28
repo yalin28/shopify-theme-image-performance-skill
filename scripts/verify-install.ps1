@@ -39,13 +39,23 @@ Write-Host "检查 Skill 安装: $SkillName"
 Write-Host ""
 
 Test-Install "Cursor（个人）" (Join-Path $homeDir ".cursor\skills\$SkillName")
+$codexStandardRoot = if ($env:CODEX_AGENT_SKILLS_DIR) { $env:CODEX_AGENT_SKILLS_DIR } else { Join-Path $homeDir ".agents\skills" }
+Test-Install "Codex（个人标准）" (Join-Path $codexStandardRoot $SkillName)
 $codexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $homeDir ".codex" }
-Test-Install "Codex（个人）" (Join-Path $codexHome "skills\$SkillName")
+Test-Install "Codex（个人兼容）" (Join-Path $codexHome "skills\$SkillName")
 Test-Install "Claude Code（个人）" (Join-Path $homeDir ".claude\skills\$SkillName")
 
 $projectSkill = Join-Path (Get-Location) ".cursor\skills\$SkillName\SKILL.md"
 if (Test-Path -LiteralPath $projectSkill) {
-  Test-Install "当前项目" (Join-Path (Get-Location) ".cursor\skills\$SkillName")
+  Test-Install "当前项目 Cursor" (Join-Path (Get-Location) ".cursor\skills\$SkillName")
+}
+$projectCodexSkill = Join-Path (Get-Location) ".agents\skills\$SkillName\SKILL.md"
+if (Test-Path -LiteralPath $projectCodexSkill) {
+  Test-Install "当前项目 Codex" (Join-Path (Get-Location) ".agents\skills\$SkillName")
+}
+$projectClaudeSkill = Join-Path (Get-Location) ".claude\skills\$SkillName\SKILL.md"
+if (Test-Path -LiteralPath $projectClaudeSkill) {
+  Test-Install "当前项目 Claude Code" (Join-Path (Get-Location) ".claude\skills\$SkillName")
 }
 
 Write-Host ""
@@ -54,5 +64,5 @@ if ($Found -gt 0) {
   exit 0
 }
 
-Write-Host "未发现有效安装。请运行: .\scripts\install.ps1 -All"
+Write-Host "未发现有效安装。请按目标平台运行: .\scripts\install.ps1 -Cursor、-Codex 或 -Claude"
 exit 1

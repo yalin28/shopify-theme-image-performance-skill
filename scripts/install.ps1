@@ -31,21 +31,24 @@ function Show-Usage {
 
 选项:
   -Cursor          安装到 %USERPROFILE%\.cursor\skills\<skill-name>\
-  -Codex           安装到 %USERPROFILE%\.codex\skills\<skill-name>\
+  -Codex           安装到 %USERPROFILE%\.agents\skills\<skill-name>\，并兼容 %USERPROFILE%\.codex\skills\<skill-name>\
   -Claude          安装到 %USERPROFILE%\.claude\skills\<skill-name>\
   -Project <DIR>   安装到 <DIR>\.cursor\skills\<skill-name>\（省略路径则用当前目录）
-  -All             安装到 Cursor + Codex（无参数时等同 -All）
+  -All             安装到 Cursor + Codex + Claude Code
   -Force           覆盖已存在的安装目录
   -Link            创建目录符号链接（需开发者模式或管理员；失败时请去掉 -Link）
   -Help            显示帮助
 
 示例:
-  .\scripts\install.ps1 -All
   .\scripts\install.ps1 -Cursor -Force
+  .\scripts\install.ps1 -Codex
+  .\scripts\install.ps1 -Claude
   .\scripts\install.ps1 -Project C:\path\to\my-shopify-theme
 
-远程一键（从 GitHub 拉取 SKILL 文件后安装）:
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile `$env:TEMP\install-skill.ps1; & `$env:TEMP\install-skill.ps1 -All }"
+远程安装（从 GitHub 拉取 Skill 文件后安装，按平台选择）:
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile `$env:TEMP\install-skill.ps1; & `$env:TEMP\install-skill.ps1 -Cursor }"
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile `$env:TEMP\install-skill.ps1; & `$env:TEMP\install-skill.ps1 -Codex }"
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile `$env:TEMP\install-skill.ps1; & `$env:TEMP\install-skill.ps1 -Claude }"
 
 macOS / Linux / Git Bash 请使用: ./scripts/install.sh
 "@
@@ -150,6 +153,17 @@ function Get-UserHome {
   return $env:HOME
 }
 
+function Install-Codex([string]$HomeDir) {
+  $standardRoot = if ($env:CODEX_AGENT_SKILLS_DIR) { $env:CODEX_AGENT_SKILLS_DIR } else { Join-Path $HomeDir ".agents\skills" }
+  $codexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $HomeDir ".codex" }
+  $legacyRoot = Join-Path $codexHome "skills"
+
+  Install-One $standardRoot
+  if ($legacyRoot -ne $standardRoot) {
+    Install-One $legacyRoot
+  }
+}
+
 if ($Help) {
   Show-Usage
   exit 0
@@ -163,11 +177,12 @@ $installProject = $PSBoundParameters.ContainsKey("Project")
 if ($All) {
   $installCursor = $true
   $installCodex = $true
+  $installClaude = $true
 }
 
 if (-not ($installCursor -or $installCodex -or $installClaude -or $installProject)) {
-  $installCursor = $true
-  $installCodex = $true
+  Show-Usage
+  Fail "请明确选择安装目标：-Cursor、-Codex、-Claude、-Project 或 -All"
 }
 
 try {
@@ -183,8 +198,7 @@ try {
     Install-One (Join-Path $homeDir ".cursor\skills")
   }
   if ($installCodex) {
-    $codexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $homeDir ".codex" }
-    Install-One (Join-Path $codexHome "skills")
+    Install-Codex $homeDir
   }
   if ($installClaude) {
     Install-One (Join-Path $homeDir ".claude\skills")
@@ -196,7 +210,7 @@ try {
   }
 
   Write-Host ""
-  Write-Host "完成。验证: Test-Path `"`$env:USERPROFILE\.cursor\skills\$SkillName\SKILL.md`"（或 clone 仓库后运行 .\scripts\verify-install.ps1）"
+  Write-Host "完成。验证: .\scripts\verify-install.ps1"
   Write-Host "使用: 在 Shopify 主题项目中对 Agent 说「按 shopify-theme-image-performance 分析这个 section 的图片加载」"
   if ($installCodex) {
     Write-Host "Codex: 安装后请重启以加载新 Skill。"

@@ -39,11 +39,18 @@ echo "检查 Skill 安装: ${SKILL_NAME}"
 echo ""
 
 check_dir "Cursor（个人）" "${HOME}/.cursor/skills/${SKILL_NAME}"
-check_dir "Codex（个人）" "${CODEX_HOME:-${HOME}/.codex}/skills/${SKILL_NAME}"
+check_dir "Codex（个人标准）" "${CODEX_AGENT_SKILLS_DIR:-${HOME}/.agents/skills}/${SKILL_NAME}"
+check_dir "Codex（个人兼容）" "${CODEX_HOME:-${HOME}/.codex}/skills/${SKILL_NAME}"
 check_dir "Claude Code（个人）" "${HOME}/.claude/skills/${SKILL_NAME}"
 
 if [[ -f ".cursor/skills/${SKILL_NAME}/SKILL.md" ]]; then
-  check_dir "当前项目" "$(pwd)/.cursor/skills/${SKILL_NAME}"
+  check_dir "当前项目 Cursor" "$(pwd)/.cursor/skills/${SKILL_NAME}"
+fi
+if [[ -f ".agents/skills/${SKILL_NAME}/SKILL.md" ]]; then
+  check_dir "当前项目 Codex" "$(pwd)/.agents/skills/${SKILL_NAME}"
+fi
+if [[ -f ".claude/skills/${SKILL_NAME}/SKILL.md" ]]; then
+  check_dir "当前项目 Claude Code" "$(pwd)/.claude/skills/${SKILL_NAME}"
 fi
 
 echo ""
@@ -52,5 +59,5 @@ if [[ ${FOUND} -gt 0 ]]; then
   exit 0
 fi
 
-echo "未发现有效安装。请运行: ./scripts/install.sh --all"
+echo "未发现有效安装。请按目标平台运行: ./scripts/install.sh --cursor、--codex 或 --claude"
 exit 1
