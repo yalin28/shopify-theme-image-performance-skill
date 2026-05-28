@@ -1,0 +1,4 @@
+interface:
+  display_name: "Shopify 主题图片性能"
+  short_description: "审计 Liquid 图片加载并按 P0–Pn 分级优化"
+  default_prompt: "Use $shopify-theme-image-performance to analyze image loading in this section. Output the P0–Pn priority list only; do not edit files until I confirm."
