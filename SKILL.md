@@ -430,8 +430,7 @@ P0 处理完 Banner 与首屏轮播主图后，P1 通常是**首屏外的卡片/
   src="{{ block.settings.discount_tag | image_url: width: 120 }}"
   width="60" height="60"
   loading="lazy" fetchpriority="low"
-  alt=""
-  {%- comment -%}装饰图，主动置空 alt 以通过 theme check；非遗漏{%- endcomment -%}
+  alt="{{ block.settings.discount_tag.alt }}"
 >
 {%- endif -%}
 ```
