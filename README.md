@@ -90,7 +90,12 @@ Skill 会按两阶段执行：
 
 ## 相关依赖
 
-建议在 Cursor / Codex 中启用 Shopify MCP，以便阶段 2 自动执行主题校验；无 MCP 时 Skill 会提示手动校验。
+阶段 2 校验按以下顺序自动降级，**任一可用即可**：
+
+1. Shopify MCP（推荐）：在 Cursor / Codex 中启用后，Skill 自动调用 `validate_theme`。
+2. Shopify CLI 本地校验：`shopify theme check`（未安装可 `brew install shopify-cli` 或 `npm i -g @shopify/cli @shopify/theme`）。
+3. IDE Liquid / Theme Check 插件保存时自动校验。
+4. 上述均不可用时，Skill 会显式说明"未自动校验"并做人工 diff 检查。
 
 ## License
 
