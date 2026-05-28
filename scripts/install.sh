@@ -3,6 +3,7 @@
 set -euo pipefail
 
 SKILL_NAME="shopify-theme-image-performance"
+SKILL_DISPLAY="Shopify Theme Image Performance"
 GITHUB_REPO="${SKILL_INSTALL_REPO:-yalin28/shopify-theme-image-performance-skill}"
 GITHUB_REF="${SKILL_INSTALL_REF:-main}"
 
@@ -15,6 +16,8 @@ INSTALL_CODEX=0
 INSTALL_CLAUDE=0
 FORCE=0
 USE_LINK=0
+INSTALLED_COUNT=0
+SKIPPED_COUNT=0
 
 SKILL_FILES=(SKILL.md)
 OPTIONAL_DIRS=(agents)
@@ -25,6 +28,12 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
+
+info()  { echo "  💬 $*"; }
+step()  { echo "  ▸ $*"; }
+ok()    { echo "  ✅ $*"; }
+warn()  { echo "  ⚠️  $*"; }
+hint()  { echo "  💡 $*"; }
 
 usage() {
   cat <<'EOF'
@@ -56,7 +65,8 @@ EOF
 }
 
 die() {
-  echo "错误: $*" >&2
+  echo "" >&2
+  echo "  ❌ $*" >&2
   exit 1
 }
 
@@ -65,12 +75,13 @@ ensure_source() {
     return 0
   fi
 
-  echo "未检测到本地仓库，正在从 GitHub 获取 Skill 文件（${GITHUB_REPO}@${GITHUB_REF}）..." >&2
+  step "未检测到本地仓库，正在从 GitHub 获取 Skill 文件..."
+  info "来源: ${GITHUB_REPO}@${GITHUB_REF}"
   DOWNLOAD_TMP="$(mktemp -d)"
   local base="https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_REF}"
 
   curl -fsSL "${base}/SKILL.md" -o "${DOWNLOAD_TMP}/SKILL.md" \
-    || die "下载 SKILL.md 失败，请检查网络或仓库地址"
+    || die "下载 SKILL.md 失败，请检查网络连接或仓库地址是否正确"
 
   mkdir -p "${DOWNLOAD_TMP}/agents"
   curl -fsSL "${base}/agents/openai.yaml" -o "${DOWNLOAD_TMP}/agents/openai.yaml" 2>/dev/null || true
@@ -79,18 +90,26 @@ ensure_source() {
 }
 
 require_skill_source() {
-  [[ -f "${SRC_DIR}/SKILL.md" ]] || die "未找到 SKILL.md。"
+  [[ -f "${SRC_DIR}/SKILL.md" ]] || die "未找到 SKILL.md，无法继续安装。"
 }
 
 install_one() {
   local dest_root="$1"
+  local label="${2:-}"
   local dest="${dest_root}/${SKILL_NAME}"
+
+  if [[ -n "${label}" ]]; then
+    step "正在安装到 ${label}..."
+  fi
 
   if [[ -e "${dest}" ]]; then
     if [[ "${FORCE}" -eq 1 ]]; then
       rm -rf "${dest}"
     else
-      die "目标已存在: ${dest}（使用 --force 覆盖）"
+      warn "该路径已存在: ${dest}"
+      hint "Skill 之前已安装过，如需覆盖更新请添加 --force 参数重新运行"
+      SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+      return 0
     fi
   fi
 
@@ -98,10 +117,11 @@ install_one() {
 
   if [[ "${USE_LINK}" -eq 1 ]]; then
     if [[ -n "${DOWNLOAD_TMP}" ]]; then
-      die "远程下载模式不支持 --link，请先 git clone 仓库后再链接安装"
+      die "远程下载模式不支持 --link，请先 git clone 仓库后再使用链接安装"
     fi
     ln -s "${SRC_DIR}" "${dest}"
-    echo "已链接 -> ${dest}"
+    ok "已通过符号链接安装 → ${dest}"
+    INSTALLED_COUNT=$((INSTALLED_COUNT + 1))
     return
   fi
 
@@ -114,16 +134,17 @@ install_one() {
       cp -R "${SRC_DIR}/${d}" "${dest}/"
     fi
   done
-  echo "已安装 -> ${dest}"
+  ok "安装完成 → ${dest}"
+  INSTALLED_COUNT=$((INSTALLED_COUNT + 1))
 }
 
 install_codex() {
   local standard_root="${CODEX_AGENT_SKILLS_DIR:-${HOME}/.agents/skills}"
   local legacy_root="${CODEX_HOME:-${HOME}/.codex}/skills"
 
-  install_one "${standard_root}"
+  install_one "${standard_root}" "Codex (标准路径)"
   if [[ "${legacy_root}" != "${standard_root}" ]]; then
-    install_one "${legacy_root}"
+    install_one "${legacy_root}" "Codex (兼容路径)"
   fi
 }
 
@@ -131,7 +152,7 @@ parse_args() {
   if [[ $# -eq 0 ]]; then
     usage
     echo "" >&2
-    die "请明确选择安装目标：--cursor、--codex、--claude 或 --all"
+    die "请选择安装目标：--cursor、--codex、--claude 或 --all"
   fi
 
   while [[ $# -gt 0 ]]; do
@@ -160,28 +181,46 @@ parse_args() {
 
 main() {
   parse_args "$@"
+
+  echo ""
+  echo "  🚀 ${SKILL_DISPLAY} — Skill 安装程序"
+  echo "  ─────────────────────────────────────────"
+  echo ""
+
   ensure_source
   require_skill_source
 
   if [[ "${INSTALL_CURSOR}" -eq 0 && "${INSTALL_CODEX}" -eq 0 && "${INSTALL_CLAUDE}" -eq 0 ]]; then
-    die "请指定至少一个目标：--cursor、--codex、--claude 或 --all"
+    die "请指定至少一个安装目标：--cursor、--codex、--claude 或 --all"
   fi
 
   if [[ "${INSTALL_CURSOR}" -eq 1 ]]; then
-    install_one "${HOME}/.cursor/skills"
+    install_one "${HOME}/.cursor/skills" "Cursor"
   fi
   if [[ "${INSTALL_CODEX}" -eq 1 ]]; then
     install_codex
   fi
   if [[ "${INSTALL_CLAUDE}" -eq 1 ]]; then
-    install_one "${HOME}/.claude/skills"
+    install_one "${HOME}/.claude/skills" "Claude Code"
+  fi
+
+  echo ""
+  echo "  ─────────────────────────────────────────"
+
+  if [[ "${INSTALLED_COUNT}" -gt 0 && "${SKIPPED_COUNT}" -eq 0 ]]; then
+    echo "  🎉 安装成功！"
+  elif [[ "${INSTALLED_COUNT}" -gt 0 && "${SKIPPED_COUNT}" -gt 0 ]]; then
+    echo "  🎉 安装成功（${SKIPPED_COUNT} 个目标已存在，已跳过）"
+  elif [[ "${SKIPPED_COUNT}" -gt 0 ]]; then
+    echo "  ℹ️  所有目标均已安装过，无需重复操作"
+    hint "如需覆盖更新，请使用 --force 参数"
+  fi
+
+  if [[ "${INSTALL_CODEX}" -eq 1 && "${INSTALLED_COUNT}" -gt 0 ]]; then
+    echo ""
+    info "Codex 用户请重启终端以加载新安装的 Skill"
   fi
   echo ""
-  echo "完成。验证: ./scripts/verify-install.sh"
-  echo "使用: 在 Shopify 主题项目中对 Agent 说「按 shopify-theme-image-performance 分析这个 section 的图片加载」"
-  if [[ "${INSTALL_CODEX}" -eq 1 ]]; then
-    echo "Codex: 安装后请重启以加载新 Skill。"
-  fi
 }
 
 main "$@"
