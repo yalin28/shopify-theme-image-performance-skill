@@ -16,7 +16,7 @@ function Test-Install([string]$Label, [string]$Dir) {
     return
   }
 
-  $missing = @("SKILL.md", "examples.md") | Where-Object {
+  $missing = @("SKILL.md") | Where-Object {
     -not (Test-Path -LiteralPath (Join-Path $Dir $_) -PathType Leaf)
   }
   if ($missing.Count -gt 0) {

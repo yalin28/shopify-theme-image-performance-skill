@@ -15,7 +15,7 @@ check_dir() {
   fi
 
   local missing=0
-  for f in SKILL.md examples.md; do
+  for f in SKILL.md; do
     if [[ ! -f "${dir}/${f}" ]]; then
       echo "✗ ${label}: 缺少 ${f} (${dir})"
       missing=1

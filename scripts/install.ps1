@@ -19,7 +19,7 @@ $GithubRef = if ($env:SKILL_INSTALL_REF) { $env:SKILL_INSTALL_REF } else { "main
 $Script:SrcDir = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $DownloadTmp = $null
 
-$SkillFiles = @("SKILL.md", "examples.md")
+$SkillFiles = @("SKILL.md")
 $OptionalDirs = @("agents")
 
 function Show-Usage {
@@ -69,7 +69,6 @@ function Ensure-Source {
 
   try {
     Invoke-WebRequest -Uri "$base/SKILL.md" -OutFile (Join-Path $tmp "SKILL.md") -UseBasicParsing
-    Invoke-WebRequest -Uri "$base/examples.md" -OutFile (Join-Path $tmp "examples.md") -UseBasicParsing
     New-Item -ItemType Directory -Path (Join-Path $tmp "agents") -Force | Out-Null
     try {
       Invoke-WebRequest -Uri "$base/agents/openai.yaml" -OutFile (Join-Path $tmp "agents\openai.yaml") -UseBasicParsing
@@ -89,9 +88,6 @@ function Ensure-Source {
 function Test-SkillSource {
   if (-not (Test-Path -LiteralPath (Join-Path $Script:SrcDir "SKILL.md") -PathType Leaf)) {
     Fail "未找到 SKILL.md。"
-  }
-  if (-not (Test-Path -LiteralPath (Join-Path $Script:SrcDir "examples.md") -PathType Leaf)) {
-    Fail "未找到 examples.md。"
   }
 }
 

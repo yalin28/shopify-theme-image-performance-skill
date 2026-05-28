@@ -6,7 +6,7 @@ SKILL_NAME="shopify-theme-image-performance"
 GITHUB_REPO="${SKILL_INSTALL_REPO:-yalin28/shopify-theme-image-performance-skill}"
 GITHUB_REF="${SKILL_INSTALL_REF:-main}"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || pwd)"
 SRC_DIR="$(cd "${SCRIPT_DIR}/.." 2>/dev/null && pwd || pwd)"
 DOWNLOAD_TMP=""
 
@@ -16,7 +16,7 @@ INSTALL_CLAUDE=0
 FORCE=0
 USE_LINK=0
 
-SKILL_FILES=(SKILL.md examples.md)
+SKILL_FILES=(SKILL.md)
 OPTIONAL_DIRS=(agents)
 
 cleanup() {
@@ -71,8 +71,6 @@ ensure_source() {
 
   curl -fsSL "${base}/SKILL.md" -o "${DOWNLOAD_TMP}/SKILL.md" \
     || die "下载 SKILL.md 失败，请检查网络或仓库地址"
-  curl -fsSL "${base}/examples.md" -o "${DOWNLOAD_TMP}/examples.md" \
-    || die "下载 examples.md 失败"
 
   mkdir -p "${DOWNLOAD_TMP}/agents"
   curl -fsSL "${base}/agents/openai.yaml" -o "${DOWNLOAD_TMP}/agents/openai.yaml" 2>/dev/null || true
@@ -82,7 +80,6 @@ ensure_source() {
 
 require_skill_source() {
   [[ -f "${SRC_DIR}/SKILL.md" ]] || die "未找到 SKILL.md。"
-  [[ -f "${SRC_DIR}/examples.md" ]] || die "未找到 examples.md。"
 }
 
 install_one() {
