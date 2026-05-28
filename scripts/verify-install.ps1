@@ -45,19 +45,6 @@ $codexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $homeDir 
 Test-Install "Codex（个人兼容）" (Join-Path $codexHome "skills\$SkillName")
 Test-Install "Claude Code（个人）" (Join-Path $homeDir ".claude\skills\$SkillName")
 
-$projectSkill = Join-Path (Get-Location) ".cursor\skills\$SkillName\SKILL.md"
-if (Test-Path -LiteralPath $projectSkill) {
-  Test-Install "当前项目 Cursor" (Join-Path (Get-Location) ".cursor\skills\$SkillName")
-}
-$projectCodexSkill = Join-Path (Get-Location) ".agents\skills\$SkillName\SKILL.md"
-if (Test-Path -LiteralPath $projectCodexSkill) {
-  Test-Install "当前项目 Codex" (Join-Path (Get-Location) ".agents\skills\$SkillName")
-}
-$projectClaudeSkill = Join-Path (Get-Location) ".claude\skills\$SkillName\SKILL.md"
-if (Test-Path -LiteralPath $projectClaudeSkill) {
-  Test-Install "当前项目 Claude Code" (Join-Path (Get-Location) ".claude\skills\$SkillName")
-}
-
 Write-Host ""
 if ($Found -gt 0) {
   Write-Host "已检测到 $Found 处有效安装。若 Agent 未识别 Skill，请重启 IDE 或新开对话。"

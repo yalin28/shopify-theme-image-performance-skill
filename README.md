@@ -18,83 +18,178 @@ Cursor / Codex / Claude Code 共用的 **Agent Skill**：系统化优化 Shopify
 
 ## 快速安装
 
-### macOS / Linux / Git Bash
+选择一个目标平台安装。下面每个安装代码块只包含一条可执行命令，方便直接使用 GitHub 的复制按钮。
+
+### macOS / Linux / Git Bash：远程安装
+
+Cursor：
 
 ```bash
-git clone https://github.com/yalin28/shopify-theme-image-performance-skill.git
-cd shopify-theme-image-performance-skill
-chmod +x scripts/install.sh scripts/verify-install.sh
-# 任选一个目标平台
-./scripts/install.sh --cursor
-# ./scripts/install.sh --codex
-# ./scripts/install.sh --claude
-./scripts/verify-install.sh
+curl -fsSL https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.sh | bash -s -- --cursor
 ```
+
+Codex：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.sh | bash -s -- --codex
+```
+
+Claude Code：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.sh | bash -s -- --claude
+```
+
+### macOS / Linux / Git Bash：本地安装
 
 | 目标 | 命令 | 安装路径 |
 |------|------|----------|
 | Cursor（个人） | `./scripts/install.sh --cursor` | `~/.cursor/skills/shopify-theme-image-performance/` |
 | Codex（个人） | `./scripts/install.sh --codex` | `~/.agents/skills/shopify-theme-image-performance/` + `~/.codex/skills/shopify-theme-image-performance/` |
 | Claude Code | `./scripts/install.sh --claude` | `~/.claude/skills/shopify-theme-image-performance/` |
-| 主题项目（团队） | `./scripts/install.sh --project /path/to/theme` | `.cursor/skills/shopify-theme-image-performance/` |
 | 全部个人环境 | `./scripts/install.sh --all` | Cursor + Codex + Claude Code |
 
-```bash
-./scripts/install.sh --cursor --force   # 覆盖 Cursor 已有安装
-./scripts/install.sh --link --cursor    # 符号链接（仅本地 clone 后可用）
-./scripts/install.sh --all              # 高级选项：一次安装到 Cursor + Codex + Claude Code
-```
-
-**远程安装**（无需 clone，脚本会从 GitHub 下载 `SKILL.md` / `examples.md` 后安装；按平台选择）：
+先 clone 仓库：
 
 ```bash
-# Cursor
-curl -fsSL https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.sh | bash -s -- --cursor
-
-# Codex
-curl -fsSL https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.sh | bash -s -- --codex
-
-# Claude Code
-curl -fsSL https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.sh | bash -s -- --claude
+git clone https://github.com/yalin28/shopify-theme-image-performance-skill.git
 ```
 
-### Windows（PowerShell）
+进入目录：
+
+```bash
+cd shopify-theme-image-performance-skill
+```
+
+授权脚本：
+
+```bash
+chmod +x scripts/install.sh scripts/verify-install.sh
+```
+
+Cursor：
+
+```bash
+./scripts/install.sh --cursor
+```
+
+Codex：
+
+```bash
+./scripts/install.sh --codex
+```
+
+Claude Code：
+
+```bash
+./scripts/install.sh --claude
+```
+
+覆盖已有安装时，在对应命令后追加 `--force`，例如：
+
+```bash
+./scripts/install.sh --cursor --force
+```
+
+本地开发可使用符号链接：
+
+```bash
+./scripts/install.sh --link --cursor
+```
+
+高级选项：一次安装到 Cursor + Codex + Claude Code：
+
+```bash
+./scripts/install.sh --all
+```
+
+验证安装：
+
+```bash
+./scripts/verify-install.sh
+```
+
+### Windows（PowerShell）：远程安装
+
+Cursor：
 
 ```powershell
-git clone https://github.com/yalin28/shopify-theme-image-performance-skill.git
-cd shopify-theme-image-performance-skill
-# 任选一个目标平台
-.\scripts\install.ps1 -Cursor
-# .\scripts\install.ps1 -Codex
-# .\scripts\install.ps1 -Claude
-.\scripts\verify-install.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile $env:TEMP\install-skill.ps1; & $env:TEMP\install-skill.ps1 -Cursor }"
 ```
+
+Codex：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile $env:TEMP\install-skill.ps1; & $env:TEMP\install-skill.ps1 -Codex }"
+```
+
+Claude Code：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile $env:TEMP\install-skill.ps1; & $env:TEMP\install-skill.ps1 -Claude }"
+```
+
+### Windows（PowerShell）：本地安装
 
 | 目标 | 命令 | 安装路径 |
 |------|------|----------|
 | Cursor（个人） | `.\scripts\install.ps1 -Cursor` | `%USERPROFILE%\.cursor\skills\shopify-theme-image-performance\` |
 | Codex（个人） | `.\scripts\install.ps1 -Codex` | `%USERPROFILE%\.agents\skills\shopify-theme-image-performance\` + `%USERPROFILE%\.codex\skills\shopify-theme-image-performance\` |
 | Claude Code | `.\scripts\install.ps1 -Claude` | `%USERPROFILE%\.claude\skills\shopify-theme-image-performance\` |
-| 主题项目（团队） | `.\scripts\install.ps1 -Project C:\path\to\theme` | `.cursor\skills\shopify-theme-image-performance\` |
 | 全部个人环境 | `.\scripts\install.ps1 -All` | Cursor + Codex + Claude Code |
+
+先 clone 仓库：
+
+```powershell
+git clone https://github.com/yalin28/shopify-theme-image-performance-skill.git
+```
+
+进入目录：
+
+```powershell
+cd shopify-theme-image-performance-skill
+```
+
+Cursor：
+
+```powershell
+.\scripts\install.ps1 -Cursor
+```
+
+Codex：
+
+```powershell
+.\scripts\install.ps1 -Codex
+```
+
+Claude Code：
+
+```powershell
+.\scripts\install.ps1 -Claude
+```
+
+绕过执行策略时，使用对应平台参数：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Cursor
+```
+
+覆盖已有安装时，在对应命令后追加 `-Force`，例如：
 
 ```powershell
 .\scripts\install.ps1 -Cursor -Force
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Cursor   # 绕过执行策略
-.\scripts\install.ps1 -All   # 高级选项：一次安装到 Cursor + Codex + Claude Code
 ```
 
-**远程安装**（仅下载 `install.ps1`，脚本会从 GitHub 拉取 Skill 文件后安装；按平台选择）：
+高级选项：一次安装到 Cursor + Codex + Claude Code：
 
 ```powershell
-# Cursor
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile $env:TEMP\install-skill.ps1; & $env:TEMP\install-skill.ps1 -Cursor }"
+.\scripts\install.ps1 -All
+```
 
-# Codex
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile $env:TEMP\install-skill.ps1; & $env:TEMP\install-skill.ps1 -Codex }"
+验证安装：
 
-# Claude Code
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile $env:TEMP\install-skill.ps1; & $env:TEMP\install-skill.ps1 -Claude }"
+```powershell
+.\scripts\verify-install.ps1
 ```
 
 **Git Bash on Windows**：也可按平台运行 `./scripts/install.sh --cursor` / `--codex` / `--claude`（与 macOS 相同）。
@@ -107,7 +202,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://ra
 
 ```bash
 npx skills add yalin28/shopify-theme-image-performance-skill -g -a cursor --copy
+```
+
+```bash
 npx skills add yalin28/shopify-theme-image-performance-skill -g -a codex --copy
+```
+
+```bash
 npx skills add yalin28/shopify-theme-image-performance-skill -g -a claude-code --copy
 ```
 
@@ -189,7 +290,6 @@ if (Test-Path agents) { Copy-Item agents -Destination $dest -Recurse }
 | PowerShell 禁止运行脚本 | `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` 或使用 `-ExecutionPolicy Bypass` |
 | 安装目录已存在 | 加 `--force`（bash）或 `-Force`（PowerShell） |
 | Codex 看不到 Skill | 优先确认 `~/.agents/skills/`，并检查兼容路径 `~/.codex/skills/`；然后重启 Codex |
-| 团队共享 | 在主题仓库执行 `--project` / `-Project`，将 `.cursor/skills/` 提交进主题 git |
 
 ## 文件结构
 
@@ -213,4 +313,4 @@ shopify-theme-image-performance-skill/
 
 ## License
 
-MIT — 见 [LICENSE](LICENSE)
+[MIT](LICENSE)

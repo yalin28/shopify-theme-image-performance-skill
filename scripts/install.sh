@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install shopify-theme-image-performance skill for Cursor, Codex, Claude Code, or a project repo.
+# Install shopify-theme-image-performance skill for Cursor, Codex, or Claude Code.
 set -euo pipefail
 
 SKILL_NAME="shopify-theme-image-performance"
@@ -13,8 +13,6 @@ DOWNLOAD_TMP=""
 INSTALL_CURSOR=0
 INSTALL_CODEX=0
 INSTALL_CLAUDE=0
-INSTALL_PROJECT=0
-PROJECT_ROOT=""
 FORCE=0
 USE_LINK=0
 
@@ -38,7 +36,6 @@ usage() {
   --cursor          安装到 ~/.cursor/skills/<skill-name>/
   --codex           安装到 ~/.agents/skills/<skill-name>/，并兼容 ~/.codex/skills/<skill-name>/
   --claude          安装到 ~/.claude/skills/<skill-name>/
-  --project [DIR]   安装到 <DIR>/.cursor/skills/<skill-name>/（默认当前目录）
   --all             安装到 Cursor + Codex + Claude Code
   --force           覆盖已存在的安装目录
   --link            使用符号链接（适合本地开发本仓库）
@@ -48,7 +45,6 @@ usage() {
   ./scripts/install.sh --cursor --force
   ./scripts/install.sh --codex
   ./scripts/install.sh --claude
-  ./scripts/install.sh --project /path/to/my-shopify-theme
 
 远程安装（从 GitHub 拉取 Skill 文件后安装，按平台选择）:
   curl -fsSL https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.sh | bash -s -- --cursor
@@ -138,7 +134,7 @@ parse_args() {
   if [[ $# -eq 0 ]]; then
     usage
     echo "" >&2
-    die "请明确选择安装目标：--cursor、--codex、--claude、--project 或 --all"
+    die "请明确选择安装目标：--cursor、--codex、--claude 或 --all"
   fi
 
   while [[ $# -gt 0 ]]; do
@@ -146,15 +142,6 @@ parse_args() {
       --cursor) INSTALL_CURSOR=1 ;;
       --codex) INSTALL_CODEX=1 ;;
       --claude) INSTALL_CLAUDE=1 ;;
-      --project)
-        INSTALL_PROJECT=1
-        shift
-        if [[ $# -gt 0 && "$1" != --* ]]; then
-          PROJECT_ROOT="$1"
-          shift
-        fi
-        continue
-        ;;
       --all)
         INSTALL_CURSOR=1
         INSTALL_CODEX=1
@@ -179,8 +166,8 @@ main() {
   ensure_source
   require_skill_source
 
-  if [[ "${INSTALL_CURSOR}" -eq 0 && "${INSTALL_CODEX}" -eq 0 && "${INSTALL_CLAUDE}" -eq 0 && "${INSTALL_PROJECT}" -eq 0 ]]; then
-    die "请指定至少一个目标：--cursor、--codex、--claude、--project 或 --all"
+  if [[ "${INSTALL_CURSOR}" -eq 0 && "${INSTALL_CODEX}" -eq 0 && "${INSTALL_CLAUDE}" -eq 0 ]]; then
+    die "请指定至少一个目标：--cursor、--codex、--claude 或 --all"
   fi
 
   if [[ "${INSTALL_CURSOR}" -eq 1 ]]; then
@@ -192,11 +179,6 @@ main() {
   if [[ "${INSTALL_CLAUDE}" -eq 1 ]]; then
     install_one "${HOME}/.claude/skills"
   fi
-  if [[ "${INSTALL_PROJECT}" -eq 1 ]]; then
-    local root="${PROJECT_ROOT:-$(pwd)}"
-    install_one "${root}/.cursor/skills"
-  fi
-
   echo ""
   echo "完成。验证: ./scripts/verify-install.sh"
   echo "使用: 在 Shopify 主题项目中对 Agent 说「按 shopify-theme-image-performance 分析这个 section 的图片加载」"

@@ -43,16 +43,6 @@ check_dir "Codex（个人标准）" "${CODEX_AGENT_SKILLS_DIR:-${HOME}/.agents/s
 check_dir "Codex（个人兼容）" "${CODEX_HOME:-${HOME}/.codex}/skills/${SKILL_NAME}"
 check_dir "Claude Code（个人）" "${HOME}/.claude/skills/${SKILL_NAME}"
 
-if [[ -f ".cursor/skills/${SKILL_NAME}/SKILL.md" ]]; then
-  check_dir "当前项目 Cursor" "$(pwd)/.cursor/skills/${SKILL_NAME}"
-fi
-if [[ -f ".agents/skills/${SKILL_NAME}/SKILL.md" ]]; then
-  check_dir "当前项目 Codex" "$(pwd)/.agents/skills/${SKILL_NAME}"
-fi
-if [[ -f ".claude/skills/${SKILL_NAME}/SKILL.md" ]]; then
-  check_dir "当前项目 Claude Code" "$(pwd)/.claude/skills/${SKILL_NAME}"
-fi
-
 echo ""
 if [[ ${FOUND} -gt 0 ]]; then
   echo "已检测到 ${FOUND} 处有效安装。若 Agent 未识别 Skill，请重启 IDE 或新开对话。"

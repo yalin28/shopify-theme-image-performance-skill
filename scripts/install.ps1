@@ -1,10 +1,9 @@
-# Install shopify-theme-image-performance skill for Cursor, Codex, Claude Code, or a project repo.
+# Install shopify-theme-image-performance skill for Cursor, Codex, or Claude Code.
 #Requires -Version 5.1
 param(
   [switch]$Cursor,
   [switch]$Codex,
   [switch]$Claude,
-  [string]$Project = "",
   [switch]$All,
   [switch]$Force,
   [switch]$Link,
@@ -33,7 +32,6 @@ function Show-Usage {
   -Cursor          安装到 %USERPROFILE%\.cursor\skills\<skill-name>\
   -Codex           安装到 %USERPROFILE%\.agents\skills\<skill-name>\，并兼容 %USERPROFILE%\.codex\skills\<skill-name>\
   -Claude          安装到 %USERPROFILE%\.claude\skills\<skill-name>\
-  -Project <DIR>   安装到 <DIR>\.cursor\skills\<skill-name>\（省略路径则用当前目录）
   -All             安装到 Cursor + Codex + Claude Code
   -Force           覆盖已存在的安装目录
   -Link            创建目录符号链接（需开发者模式或管理员；失败时请去掉 -Link）
@@ -43,7 +41,6 @@ function Show-Usage {
   .\scripts\install.ps1 -Cursor -Force
   .\scripts\install.ps1 -Codex
   .\scripts\install.ps1 -Claude
-  .\scripts\install.ps1 -Project C:\path\to\my-shopify-theme
 
 远程安装（从 GitHub 拉取 Skill 文件后安装，按平台选择）:
   powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile `$env:TEMP\install-skill.ps1; & `$env:TEMP\install-skill.ps1 -Cursor }"
@@ -172,7 +169,6 @@ if ($Help) {
 $installCursor = $Cursor.IsPresent
 $installCodex = $Codex.IsPresent
 $installClaude = $Claude.IsPresent
-$installProject = $PSBoundParameters.ContainsKey("Project")
 
 if ($All) {
   $installCursor = $true
@@ -180,9 +176,9 @@ if ($All) {
   $installClaude = $true
 }
 
-if (-not ($installCursor -or $installCodex -or $installClaude -or $installProject)) {
+if (-not ($installCursor -or $installCodex -or $installClaude)) {
   Show-Usage
-  Fail "请明确选择安装目标：-Cursor、-Codex、-Claude、-Project 或 -All"
+  Fail "请明确选择安装目标：-Cursor、-Codex、-Claude 或 -All"
 }
 
 try {
@@ -203,12 +199,6 @@ try {
   if ($installClaude) {
     Install-One (Join-Path $homeDir ".claude\skills")
   }
-  if ($installProject) {
-    $root = if ($Project) { $Project } else { (Get-Location).Path }
-    $root = (Resolve-Path -LiteralPath $root).Path
-    Install-One (Join-Path $root ".cursor\skills")
-  }
-
   Write-Host ""
   Write-Host "完成。验证: .\scripts\verify-install.ps1"
   Write-Host "使用: 在 Shopify 主题项目中对 Agent 说「按 shopify-theme-image-performance 分析这个 section 的图片加载」"
