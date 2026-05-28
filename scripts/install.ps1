@@ -14,7 +14,12 @@ param(
 $ErrorActionPreference = "Stop"
 
 $SkillName = "shopify-theme-image-performance"
-$SrcDir = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$GithubRepo = if ($env:SKILL_INSTALL_REPO) { $env:SKILL_INSTALL_REPO } else { "yalin28/shopify-theme-image-performance-skill" }
+$GithubRef = if ($env:SKILL_INSTALL_REF) { $env:SKILL_INSTALL_REF } else { "main" }
+
+$Script:SrcDir = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$DownloadTmp = $null
+
 $SkillFiles = @("SKILL.md", "examples.md")
 $OptionalDirs = @("agents")
 
@@ -39,7 +44,7 @@ function Show-Usage {
   .\scripts\install.ps1 -Cursor -Force
   .\scripts\install.ps1 -Project C:\path\to\my-shopify-theme
 
-远程一键安装:
+远程一键（从 GitHub 拉取 SKILL 文件后安装）:
   powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile `$env:TEMP\install-skill.ps1; & `$env:TEMP\install-skill.ps1 -All }"
 
 macOS / Linux / Git Bash 请使用: ./scripts/install.sh
@@ -51,10 +56,42 @@ function Fail([string]$Message) {
   exit 1
 }
 
+function Ensure-Source {
+  if (Test-Path -LiteralPath (Join-Path $Script:SrcDir "SKILL.md") -PathType Leaf) {
+    return
+  }
+
+  Write-Host "未检测到本地仓库，正在从 GitHub 获取 Skill 文件（${GithubRepo}@${GithubRef}）..."
+  $base = "https://raw.githubusercontent.com/$GithubRepo/$GithubRef"
+  $tmp = Join-Path $env:TEMP "skill-install-$([Guid]::NewGuid().ToString('N'))"
+  New-Item -ItemType Directory -Path $tmp -Force | Out-Null
+  $Script:DownloadTmp = $tmp
+
+  try {
+    Invoke-WebRequest -Uri "$base/SKILL.md" -OutFile (Join-Path $tmp "SKILL.md") -UseBasicParsing
+    Invoke-WebRequest -Uri "$base/examples.md" -OutFile (Join-Path $tmp "examples.md") -UseBasicParsing
+    New-Item -ItemType Directory -Path (Join-Path $tmp "agents") -Force | Out-Null
+    try {
+      Invoke-WebRequest -Uri "$base/agents/openai.yaml" -OutFile (Join-Path $tmp "agents\openai.yaml") -UseBasicParsing
+    }
+    catch {
+      # agents 为可选
+    }
+  }
+  catch {
+    Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+    Fail "从 GitHub 下载失败: $($_.Exception.Message)"
+  }
+
+  $Script:SrcDir = $tmp
+}
+
 function Test-SkillSource {
-  $skillMd = Join-Path $SrcDir "SKILL.md"
-  if (-not (Test-Path -LiteralPath $skillMd -PathType Leaf)) {
-    Fail "未找到 $skillMd，请在仓库根目录运行此脚本。"
+  if (-not (Test-Path -LiteralPath (Join-Path $Script:SrcDir "SKILL.md") -PathType Leaf)) {
+    Fail "未找到 SKILL.md。"
+  }
+  if (-not (Test-Path -LiteralPath (Join-Path $Script:SrcDir "examples.md") -PathType Leaf)) {
+    Fail "未找到 examples.md。"
   }
 }
 
@@ -75,8 +112,11 @@ function Install-One([string]$DestRoot) {
   }
 
   if ($Link) {
+    if ($DownloadTmp) {
+      Fail "远程下载模式不支持 -Link，请先 git clone 仓库后再链接安装"
+    }
     try {
-      New-Item -ItemType SymbolicLink -Path $dest -Target $SrcDir -Force | Out-Null
+      New-Item -ItemType SymbolicLink -Path $dest -Target $Script:SrcDir -Force | Out-Null
       Write-Host "已链接 -> $dest"
       return
     }
@@ -88,7 +128,7 @@ function Install-One([string]$DestRoot) {
   New-Item -ItemType Directory -Path $dest -Force | Out-Null
 
   foreach ($file in $SkillFiles) {
-    $src = Join-Path $SrcDir $file
+    $src = Join-Path $Script:SrcDir $file
     if (-not (Test-Path -LiteralPath $src -PathType Leaf)) {
       Fail "缺少源文件: $src"
     }
@@ -96,7 +136,7 @@ function Install-One([string]$DestRoot) {
   }
 
   foreach ($dir in $OptionalDirs) {
-    $srcDirPath = Join-Path $SrcDir $dir
+    $srcDirPath = Join-Path $Script:SrcDir $dir
     if (Test-Path -LiteralPath $srcDirPath -PathType Container) {
       Copy-Item -LiteralPath $srcDirPath -Destination (Join-Path $dest $dir) -Recurse -Force
     }
@@ -130,32 +170,40 @@ if (-not ($installCursor -or $installCodex -or $installClaude -or $installProjec
   $installCodex = $true
 }
 
-Test-SkillSource
+try {
+  Ensure-Source
+  Test-SkillSource
 
-$homeDir = Get-UserHome
-if (-not $homeDir) {
-  Fail "无法解析用户主目录（USERPROFILE / HOME 未设置）。"
-}
+  $homeDir = Get-UserHome
+  if (-not $homeDir) {
+    Fail "无法解析用户主目录（USERPROFILE / HOME 未设置）。"
+  }
 
-if ($installCursor) {
-  Install-One (Join-Path $homeDir ".cursor\skills")
-}
-if ($installCodex) {
-  $codexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $homeDir ".codex" }
-  Install-One (Join-Path $codexHome "skills")
-}
-if ($installClaude) {
-  Install-One (Join-Path $homeDir ".claude\skills")
-}
-if ($installProject) {
-  $root = if ($Project) { $Project } else { (Get-Location).Path }
-  $root = (Resolve-Path -LiteralPath $root).Path
-  Install-One (Join-Path $root ".cursor\skills")
-}
+  if ($installCursor) {
+    Install-One (Join-Path $homeDir ".cursor\skills")
+  }
+  if ($installCodex) {
+    $codexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $homeDir ".codex" }
+    Install-One (Join-Path $codexHome "skills")
+  }
+  if ($installClaude) {
+    Install-One (Join-Path $homeDir ".claude\skills")
+  }
+  if ($installProject) {
+    $root = if ($Project) { $Project } else { (Get-Location).Path }
+    $root = (Resolve-Path -LiteralPath $root).Path
+    Install-One (Join-Path $root ".cursor\skills")
+  }
 
-Write-Host ""
-Write-Host "完成。在 Cursor / Codex 中打开 Shopify 主题项目后，可对 Agent 说："
-Write-Host "  「按 shopify-theme-image-performance 分析这个 section 的图片加载」"
-if ($installCodex) {
-  Write-Host "Codex 用户：安装后请重启 Codex 以加载新 Skill。"
+  Write-Host ""
+  Write-Host "完成。验证: Test-Path `"`$env:USERPROFILE\.cursor\skills\$SkillName\SKILL.md`"（或 clone 仓库后运行 .\scripts\verify-install.ps1）"
+  Write-Host "使用: 在 Shopify 主题项目中对 Agent 说「按 shopify-theme-image-performance 分析这个 section 的图片加载」"
+  if ($installCodex) {
+    Write-Host "Codex: 安装后请重启以加载新 Skill。"
+  }
+}
+finally {
+  if ($DownloadTmp -and (Test-Path -LiteralPath $DownloadTmp)) {
+    Remove-Item -LiteralPath $DownloadTmp -Recurse -Force -ErrorAction SilentlyContinue
+  }
 }

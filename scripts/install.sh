@@ -3,8 +3,12 @@
 set -euo pipefail
 
 SKILL_NAME="shopify-theme-image-performance"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SRC_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+GITHUB_REPO="${SKILL_INSTALL_REPO:-yalin28/shopify-theme-image-performance-skill}"
+GITHUB_REF="${SKILL_INSTALL_REF:-main}"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || pwd)"
+SRC_DIR="$(cd "${SCRIPT_DIR}/.." 2>/dev/null && pwd || pwd)"
+DOWNLOAD_TMP=""
 
 INSTALL_CURSOR=0
 INSTALL_CODEX=0
@@ -16,6 +20,13 @@ USE_LINK=0
 
 SKILL_FILES=(SKILL.md examples.md)
 OPTIONAL_DIRS=(agents)
+
+cleanup() {
+  if [[ -n "${DOWNLOAD_TMP}" && -d "${DOWNLOAD_TMP}" ]]; then
+    rm -rf "${DOWNLOAD_TMP}"
+  fi
+}
+trap cleanup EXIT
 
 usage() {
   cat <<'EOF'
@@ -37,12 +48,11 @@ usage() {
   ./scripts/install.sh --all
   ./scripts/install.sh --cursor --force
   ./scripts/install.sh --project /path/to/my-shopify-theme
-  ./scripts/install.sh --link --codex
 
-远程一键安装:
+远程一键（从 GitHub 拉取 SKILL 文件后安装）:
   curl -fsSL https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.sh | bash -s -- --all
 
-Windows 用户请使用 PowerShell: .\\scripts\\install.ps1 -All（见 README）
+Windows 用户请使用 PowerShell: .\scripts\install.ps1 -All（见 README）
 EOF
 }
 
@@ -51,8 +61,29 @@ die() {
   exit 1
 }
 
+ensure_source() {
+  if [[ -f "${SRC_DIR}/SKILL.md" ]]; then
+    return 0
+  fi
+
+  echo "未检测到本地仓库，正在从 GitHub 获取 Skill 文件（${GITHUB_REPO}@${GITHUB_REF}）..." >&2
+  DOWNLOAD_TMP="$(mktemp -d)"
+  local base="https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_REF}"
+
+  curl -fsSL "${base}/SKILL.md" -o "${DOWNLOAD_TMP}/SKILL.md" \
+    || die "下载 SKILL.md 失败，请检查网络或仓库地址"
+  curl -fsSL "${base}/examples.md" -o "${DOWNLOAD_TMP}/examples.md" \
+    || die "下载 examples.md 失败"
+
+  mkdir -p "${DOWNLOAD_TMP}/agents"
+  curl -fsSL "${base}/agents/openai.yaml" -o "${DOWNLOAD_TMP}/agents/openai.yaml" 2>/dev/null || true
+
+  SRC_DIR="${DOWNLOAD_TMP}"
+}
+
 require_skill_source() {
-  [[ -f "${SRC_DIR}/SKILL.md" ]] || die "未找到 ${SRC_DIR}/SKILL.md，请在仓库根目录运行此脚本。"
+  [[ -f "${SRC_DIR}/SKILL.md" ]] || die "未找到 SKILL.md。"
+  [[ -f "${SRC_DIR}/examples.md" ]] || die "未找到 examples.md。"
 }
 
 install_one() {
@@ -70,6 +101,9 @@ install_one() {
   mkdir -p "${dest_root}"
 
   if [[ "${USE_LINK}" -eq 1 ]]; then
+    if [[ -n "${DOWNLOAD_TMP}" ]]; then
+      die "远程下载模式不支持 --link，请先 git clone 仓库后再链接安装"
+    fi
     ln -s "${SRC_DIR}" "${dest}"
     echo "已链接 -> ${dest}"
     return
@@ -81,7 +115,7 @@ install_one() {
   done
   for d in "${OPTIONAL_DIRS[@]}"; do
     if [[ -d "${SRC_DIR}/${d}" ]]; then
-      cp -R "${SRC_DIR}/${d}" "${dest}/${d}"
+      cp -R "${SRC_DIR}/${d}" "${dest}/"
     fi
   done
   echo "已安装 -> ${dest}"
@@ -127,6 +161,7 @@ parse_args() {
 
 main() {
   parse_args "$@"
+  ensure_source
   require_skill_source
 
   if [[ "${INSTALL_CURSOR}" -eq 0 && "${INSTALL_CODEX}" -eq 0 && "${INSTALL_CLAUDE}" -eq 0 && "${INSTALL_PROJECT}" -eq 0 ]]; then
@@ -148,10 +183,10 @@ main() {
   fi
 
   echo ""
-  echo "完成。在 Cursor / Codex 中打开 Shopify 主题项目后，可对 Agent 说："
-  echo "  「按 shopify-theme-image-performance 分析这个 section 的图片加载」"
+  echo "完成。验证: ls ~/.cursor/skills/${SKILL_NAME}/SKILL.md（或 clone 仓库后运行 ./scripts/verify-install.sh）"
+  echo "使用: 在 Shopify 主题项目中对 Agent 说「按 shopify-theme-image-performance 分析这个 section 的图片加载」"
   if [[ "${INSTALL_CODEX}" -eq 1 ]]; then
-    echo "Codex 用户：安装后请重启 Codex 以加载新 Skill。"
+    echo "Codex: 安装后请重启以加载新 Skill。"
   fi
 }
 

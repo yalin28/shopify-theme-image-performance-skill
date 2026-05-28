@@ -113,12 +113,12 @@ assign split_sizes = '(min-width: [bp+1]px) calc((min([content_max]px, 100vw - [
   {%- if mobile_image != blank -%}
     <source
       media="(max-width: 749px)"
-      srcset="{% for w in mobile_widths %}{{ mobile | image_url: width: w }} {{ w }}w{% unless forloop.last %}, {% endunless %}{% endfor %}"
+      srcset="{% for w in mobile_widths %}{{ mobile_image | image_url: width: w }} {{ w }}w{% unless forloop.last %}, {% endunless %}{% endfor %}"
       sizes="{{ mobile_sizes }}"
     >
   {%- endif -%}
   {{-
-    desktop
+    desktop_image
     | image_url: width: desktop_max
     | image_tag:
       class: '...',
@@ -182,7 +182,7 @@ assign split_sizes = '(min-width: [bp+1]px) calc((min([content_max]px, 100vw - [
 
 ## 第六步：验证（仅阶段 2）
 
-1. **Shopify MCP**：`learn_shopify_api(api: liquid)` → `validate_theme`
+1. **Liquid 校验**：优先用 Shopify MCP `learn_shopify_api(api: liquid)` → `validate_theme`；无 MCP 时说明「未自动校验」，请用户在主题目录手动跑 `shopify theme check` 或 IDE 等价检查
 2. **DevTools 对比**（告知用户具体元素）：
    - 选择器、旧版请求数 vs 新版
    - `currentSrc` 中 `width=` 参数
