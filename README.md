@@ -12,7 +12,12 @@ Cursor / Codex / Claude Code 共用的 **Agent Skill**：系统化优化 Shopify
 
 ## 安装
 
-选择一个目标平台安装。每个代码块都只有一条可直接执行的命令，方便使用 GitHub 的复制按钮。
+> **⚠️ 请根据你的操作系统选择对应的安装命令。**
+> - **macOS / Linux**：使用下方 `curl | bash` 命令
+> - **Windows（PowerShell / cmd.exe / Windows Terminal）**：使用下方 `powershell ...` 命令
+> - **Windows（Git Bash / MSYS2）**：使用 `curl | bash` 命令（与 macOS / Linux 相同）
+>
+> 如果在错误的系统上运行了另一个平台的命令（例如在 Mac 上运行 `powershell ...`），终端会直接报 `command not found`，这是正常现象——请切换到正确的命令即可。
 
 ### macOS / Linux / Git Bash
 
@@ -34,7 +39,9 @@ Claude Code：
 curl -fsSL https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.sh | bash -s -- --claude
 ```
 
-### Windows PowerShell
+### Windows（PowerShell / cmd.exe）
+
+以下命令在 PowerShell 和 cmd.exe 中均可直接运行（Windows 自带 `powershell.exe`）。
 
 Cursor：
 
@@ -54,9 +61,15 @@ Claude Code：
 powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')); & ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')) -Claude }"
 ```
 
-Windows Cursor 推荐使用上面的 PowerShell 命令。Windows 输出默认使用 `[ok]`、`[warn]` 等 ASCII 状态标记，避免 cmd / PowerShell 旧终端 emoji 乱码。Git Bash 会自动解析到 `%USERPROFILE%\.cursor\skills`；WSL 会被 bash 安装脚本拦截，因为 Windows 版 Cursor 不读取 WSL 的 `~/.cursor/skills`。
+### Windows 各终端兼容性
 
-如果复制错平台命令，安装脚本会尽量停止并回显当前系统应使用的正确命令：WSL 中安装 Windows Cursor 会提示 PowerShell 命令；macOS / Linux / Git Bash 中调用 `install.ps1` 会提示 `curl | bash` 命令。
+| 终端 | 安装方式 | 说明 |
+|------|---------|------|
+| PowerShell 5.x / 7.x | 上方 `powershell ...` 命令 | Windows 自带，推荐 |
+| cmd.exe | 上方 `powershell ...` 命令 | cmd 中可直接调用 `powershell` |
+| Windows Terminal | 上方 `powershell ...` 命令 | 取决于默认 Profile（PowerShell 或 cmd） |
+| Git Bash / MSYS2 | 上方 `curl \| bash` 命令 | 自动解析 `%USERPROFILE%` 路径 |
+| WSL | 上方 `curl \| bash` 命令 | 安装 Cursor 时会提示改用 PowerShell |
 
 ## 安装位置
 
@@ -87,10 +100,10 @@ Skill 会按两阶段执行：
 
 | 问题 | 处理 |
 |------|------|
-| 安装目录已存在 | 删除旧目录后，重新运行对应平台的远程安装命令 |
+| Mac/Linux 上运行 `powershell ...` 报 `command not found` | 这是 Windows 专用命令，请改用上方 macOS / Linux 的 `curl \| bash` 命令 |
+| 安装目录已存在 | 添加 `--force`（bash）或 `-Force`（PowerShell）参数覆盖安装 |
 | PowerShell 禁止运行脚本 | 使用 README 中的 `-ExecutionPolicy Bypass` 命令 |
-| 复制了另一个系统的安装命令 | 重新复制当前平台对应的命令；脚本能运行到平台检测时会直接回显正确命令 |
-| Windows Cursor 看不到 Skill，终端显示安装到 `/home/.../.cursor/skills` | 这是在 WSL 中运行了 bash 安装命令；Windows 版 Cursor 不读取 WSL 目录。请改用 Windows PowerShell 的 `install.ps1 -Cursor -Force` 命令 |
+| Windows Cursor 看不到 Skill，终端显示安装到 `/home/.../.cursor/skills` | 这是在 WSL 中运行了 bash 安装命令；Windows 版 Cursor 不读取 WSL 目录。请改用 PowerShell 命令 |
 | Codex 看不到 Skill | 确认 `~/.agents/skills/` 和兼容路径 `~/.codex/skills/`，然后重启 Codex |
 | Agent 没有自动触发 | 新开对话，或显式提及 `shopify-theme-image-performance` |
 

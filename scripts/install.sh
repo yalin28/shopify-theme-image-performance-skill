@@ -110,7 +110,7 @@ usage() {
   curl -fsSL https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.sh | bash -s -- --codex
   curl -fsSL https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.sh | bash -s -- --claude
 
-Windows 用户请使用 PowerShell: .\scripts\install.ps1 -Cursor / -Codex / -Claude（见 README）
+Windows 用户请使用 PowerShell 或 cmd.exe 运行 install.ps1（见 README）
 EOF
 }
 
