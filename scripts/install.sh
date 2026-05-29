@@ -79,9 +79,13 @@ target_args_for_powershell() {
 print_windows_powershell_install_command() {
   local target_args
   target_args="$(target_args_for_powershell)"
+  local ps_cmd="powershell"
+  if is_wsl; then
+    ps_cmd="powershell.exe"
+  fi
 
   cat >&2 <<EOF
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_REF}/scripts/install.ps1 -OutFile ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')); & ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')) ${target_args} }"
+  ${ps_cmd} -NoProfile -ExecutionPolicy Bypass -Command "iwr -useb https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_REF}/scripts/install.ps1 -OutFile shopify-install-temp.ps1; .\shopify-install-temp.ps1 ${target_args}; Remove-Item shopify-install-temp.ps1"
 EOF
 }
 

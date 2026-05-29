@@ -46,19 +46,19 @@ curl -fsSL https://raw.githubusercontent.com/yalin28/shopify-theme-image-perform
 Cursor：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')); & ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')) -Cursor }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile shopify-install-temp.ps1; .\shopify-install-temp.ps1 -Cursor; Remove-Item shopify-install-temp.ps1"
 ```
 
 Codex：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')); & ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')) -Codex }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile shopify-install-temp.ps1; .\shopify-install-temp.ps1 -Codex; Remove-Item shopify-install-temp.ps1"
 ```
 
 Claude Code：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')); & ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')) -Claude }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile shopify-install-temp.ps1; .\shopify-install-temp.ps1 -Claude; Remove-Item shopify-install-temp.ps1"
 ```
 
 ### Windows 各终端兼容性

@@ -17,7 +17,18 @@ $SkillDisplay = "Shopify Theme Image Performance"
 $GithubRepo = if ($env:SKILL_INSTALL_REPO) { $env:SKILL_INSTALL_REPO } else { "yalin28/shopify-theme-image-performance-skill" }
 $GithubRef = if ($env:SKILL_INSTALL_REF) { $env:SKILL_INSTALL_REF } else { "main" }
 
-$Script:SrcDir = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$Script:SrcDir = $null
+if ($PSScriptRoot) {
+  try {
+    $Script:SrcDir = (Resolve-Path (Join-Path $PSScriptRoot "..") -ErrorAction SilentlyContinue).Path
+  }
+  catch {
+    $Script:SrcDir = $null
+  }
+}
+if (-not $Script:SrcDir) {
+  $Script:SrcDir = (Get-Location).Path
+}
 $DownloadTmp = $null
 $Script:InstalledCount = 0
 $Script:SkippedCount = 0
@@ -32,32 +43,30 @@ function Write-Warn([string]$Message)  { Write-Host "  [warn] $Message" }
 function Write-Hint([string]$Message)  { Write-Host "  [hint] $Message" }
 
 function Show-Usage {
-  @"
-用法: .\scripts\install.ps1 [选项]
-
-将本仓库中的 Skill 安装到 AI 工具的配置目录（Windows PowerShell）。
-
-选项:
-  -Cursor          安装到 %USERPROFILE%\.cursor\skills\<skill-name>\
-  -Codex           安装到 %USERPROFILE%\.agents\skills\<skill-name>\，并兼容 %USERPROFILE%\.codex\skills\<skill-name>\
-  -Claude          安装到 %USERPROFILE%\.claude\skills\<skill-name>\
-  -All             安装到 Cursor + Codex + Claude Code
-  -Force           覆盖已存在的安装目录
-  -Link            创建目录符号链接（需开发者模式或管理员；失败时请去掉 -Link）
-  -Help            显示帮助
-
-示例:
-  .\scripts\install.ps1 -Cursor -Force
-  .\scripts\install.ps1 -Codex
-  .\scripts\install.ps1 -Claude
-
-远程安装（Windows PowerShell / cmd.exe 均可直接运行）:
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')); & ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')) -Cursor }"
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')); & ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')) -Codex }"
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')); & ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')) -Claude }"
-
-注意: 本脚本仅适用于 Windows。macOS / Linux / Git Bash 请使用 install.sh，见 README。
-"@
+  Write-Host "用法: .\scripts\install.ps1 [选项]"
+  Write-Host ""
+  Write-Host "将本仓库中的 Skill 安装到 AI 工具的配置目录（Windows PowerShell）。"
+  Write-Host ""
+  Write-Host "选项:"
+  Write-Host "  -Cursor          安装到 %USERPROFILE%\.cursor\skills\<skill-name>\"
+  Write-Host "  -Codex           安装到 %USERPROFILE%\.agents\skills\<skill-name>\，并兼容 %USERPROFILE%\.codex\skills\<skill-name>\"
+  Write-Host "  -Claude          安装到 %USERPROFILE%\.claude\skills\<skill-name>\"
+  Write-Host "  -All             安装到 Cursor + Codex + Claude Code"
+  Write-Host "  -Force           覆盖已存在的安装目录"
+  Write-Host "  -Link            创建目录符号链接（需开发者模式或管理员；失败时请去掉 -Link）"
+  Write-Host "  -Help            显示帮助"
+  Write-Host ""
+  Write-Host "示例:"
+  Write-Host "  .\scripts\install.ps1 -Cursor -Force"
+  Write-Host "  .\scripts\install.ps1 -Codex"
+  Write-Host "  .\scripts\install.ps1 -Claude"
+  Write-Host ""
+  Write-Host "远程安装（Windows PowerShell / cmd.exe 均可直接运行）:"
+  Write-Host "  powershell -NoProfile -ExecutionPolicy Bypass -Command `"iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile shopify-install-temp.ps1; .\shopify-install-temp.ps1 -Cursor; Remove-Item shopify-install-temp.ps1`""
+  Write-Host "  powershell -NoProfile -ExecutionPolicy Bypass -Command `"iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile shopify-install-temp.ps1; .\shopify-install-temp.ps1 -Codex; Remove-Item shopify-install-temp.ps1`""
+  Write-Host "  powershell -NoProfile -ExecutionPolicy Bypass -Command `"iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile shopify-install-temp.ps1; .\shopify-install-temp.ps1 -Claude; Remove-Item shopify-install-temp.ps1`""
+  Write-Host ""
+  Write-Host "注意: 本脚本仅适用于 Windows。macOS / Linux / Git Bash 请使用 install.sh，见 README。"
 }
 
 function Fail([string]$Message) {
