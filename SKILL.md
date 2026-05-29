@@ -1,15 +1,42 @@
 ---
 name: shopify-theme-image-performance
 description: >-
-  Optimizes image loading in Shopify theme sections and snippets without
-  changing visual layout. Audits CSS to derive responsive sizes/widths,
-  migrates legacy img_url to image_url/image_tag, chooses between
+  Never edit files on the first response. The first response must be
+  read-only analysis only. Optimizes image loading in Shopify theme sections
+  and snippets without changing visual layout. Audits CSS to derive responsive
+  sizes/widths, migrates legacy img_url to image_url/image_tag, chooses between
   <picture> and single image_tag, and tunes loading/fetchpriority. Always
-  analyzes and lists P0-Pn priorities first; only implements after the
-  user confirms, one priority at a time.
+  analyzes and lists P0-Pn priorities first; only implements after the user
+  explicitly confirms one priority.
 ---
 
 # Shopify 主题图片性能优化
+
+## 最高优先级门禁（必须遵守）
+
+**Never edit files on the first response. The first response must be read-only analysis only.**
+
+首次响应用户的图片优化请求时，**禁止修改任何文件**。即使用户说「优化」「全部优化」「直接优化这个文件」，第一轮也只能读代码、分析问题、输出 P0–Pn 清单，并等待用户明确确认某一个优先级后才能实施。
+
+**默认两阶段，禁止跳步：**
+
+| 阶段 | 触发 | 允许 | 禁止 |
+|------|------|------|------|
+| **阶段 1：分析** | 用户提出优化请求 | 读代码/CSS、盘点图片、输出 P0–Pn 清单与方案 | **修改任何文件** |
+| **阶段 2：实施** | 用户**明确确认**要做某一优先级 | 仅实施用户确认的那一个 Px | 一次性改多个优先级；未确认就改代码 |
+
+**硬规则：**
+
+1. **第一轮永远只读** — 不管用户措辞多像执行指令，首次响应都不能编辑文件
+2. **先分析、后修改** — 首次响应只做优先级盘点，不主动改文件
+3. **用户确认后才改** — 用户说「开始 P0」「确认 P0」等明确指令后，才进入阶段 2
+4. **逐级实施** — 必须 P0 → P1 → P2 顺序；当前级别验证完成并获用户确认后，才进入下一级
+5. **用户只确认 P0** — 只做 P0，P1/P2 留在「待做清单」，不得顺带修改
+6. **用户要求「全部优化」** — 仍按 P0 先做，完成后汇报并等待确认再做 P1（不可一轮全改）
+
+**阶段 1 结束语模板：**
+
+> 以上为分析结果，尚未修改代码。请确认从哪个优先级开始（如「确认，先做 P0」）。
 
 ## 何时触发本 skill
 
@@ -35,31 +62,12 @@ description: >-
 - **`widths` 统一为逗号分隔字符串**（对齐 Shopify 官方 `image_tag: widths: '200, 300, 400'` 约定）。`image_tag` 直接传字符串；手写 `<source srcset>` 需要遍历时显式 `| split: ','` 转数组——单一来源，不混用两种形态。
 - 投流落地页改动尤其谨慎，**必须保留** id、业务 class、依赖 DOM 的 inline script / 第三方脚本钩子。
 
-## 交互门禁（必须遵守）
-
-**默认两阶段，禁止跳步：**
-
-| 阶段 | 触发 | 允许 | 禁止 |
-|------|------|------|------|
-| **阶段 1：分析** | 用户提出优化请求 | 读代码/CSS、盘点图片、输出 P0–Pn 清单与方案 | **修改任何文件** |
-| **阶段 2：实施** | 用户**明确确认**要做某一优先级 | 仅实施用户确认的那一个 Px | 一次性改多个优先级；未确认就改代码 |
-
-**硬规则：**
-
-1. **先分析、后修改** — 首次响应只做优先级盘点，不主动改文件
-2. **用户确认后才改** — 用户说「开始 P0」「确认 P0」等明确指令后，才进入阶段 2
-3. **逐级实施** — 必须 P0 → P1 → P2 顺序；当前级别验证完成并获用户确认后，才进入下一级
-4. **用户只确认 P0** — 只做 P0，P1/P2 留在「待做清单」，不得顺带修改
-5. **用户要求「全部优化」** — 仍按 P0 先做，完成后汇报并等待确认再做 P1（不可一轮全改）
-
-**阶段 1 结束语模板：**
-
-> 以上为分析结果，尚未修改代码。请确认从哪个优先级开始（如「确认，先做 P0」）。
-
 ## 执行流程
 
 ```
 阶段 1 — 分析（只读）
+  STOP: 不要编辑、创建、删除、格式化任何文件；不要调用写入型工具；不要运行会改文件的命令
+  STOP: 即使用户说「优化」「全部优化」「直接改」，首次响应也必须停在分析报告
   1. 读 section + 关联 CSS/assets + template 用法
   2. 盘点所有图片点 → 识别反模式
   3. 从 CSS 推导各图片点的 sizes/widths 方案（写在分析里，不写进文件）
