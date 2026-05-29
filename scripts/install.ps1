@@ -52,9 +52,9 @@ function Show-Usage {
   .\scripts\install.ps1 -Claude
 
 远程安装（从 GitHub 拉取 Skill 文件后安装，按平台选择）:
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile `$env:TEMP\install-skill.ps1; & `$env:TEMP\install-skill.ps1 -Cursor }"
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile `$env:TEMP\install-skill.ps1; & `$env:TEMP\install-skill.ps1 -Codex }"
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile `$env:TEMP\install-skill.ps1; & `$env:TEMP\install-skill.ps1 -Claude }"
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')); & ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')) -Cursor }"
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')); & ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')) -Codex }"
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')); & ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')) -Claude }"
 
 macOS / Linux / Git Bash 请使用: ./scripts/install.sh
 "@
@@ -64,6 +64,66 @@ function Fail([string]$Message) {
   Write-Host ""
   Write-Host "  [error] $Message" -ForegroundColor Red
   exit 1
+}
+
+function Test-NonWindowsPowerShell {
+  $isWindowsVar = Get-Variable -Name IsWindows -ErrorAction SilentlyContinue
+  if ($null -ne $isWindowsVar) {
+    return (-not [bool]$isWindowsVar.Value)
+  }
+
+  return $false
+}
+
+function Test-GitBashParent {
+  return [bool]($env:MSYSTEM -or $env:MINGW_PREFIX -or $env:MSYS)
+}
+
+function Get-BashTargetArgs {
+  $targetArgsList = @()
+
+  if ($installCursor -and $installCodex -and $installClaude) {
+    $targetArgsList += "--all"
+  }
+  else {
+    if ($installCursor) { $targetArgsList += "--cursor" }
+    if ($installCodex) { $targetArgsList += "--codex" }
+    if ($installClaude) { $targetArgsList += "--claude" }
+  }
+
+  if ($Force) { $targetArgsList += "--force" }
+
+  return ($targetArgsList -join " ")
+}
+
+function Get-BashInstallCommand {
+  $targetArgs = Get-BashTargetArgs
+  return "curl -fsSL https://raw.githubusercontent.com/$GithubRepo/$GithubRef/scripts/install.sh | bash -s -- $targetArgs"
+}
+
+function Stop-WithBashInstallCommand([string]$Message) {
+  Write-Host ""
+  Write-Host "  [error] $Message" -ForegroundColor Red
+  Write-Host ""
+  Write-Host "  请改用下面的 macOS / Linux / Git Bash 命令："
+  Write-Host ""
+  Write-Host "  $(Get-BashInstallCommand)"
+  if ($Link) {
+    Write-Host ""
+    Write-Hint "远程安装命令不支持 -Link；如需符号链接，请先 git clone 仓库后运行本地 install.sh --link。"
+  }
+  Write-Host ""
+  exit 1
+}
+
+function Guard-PlatformCommand {
+  if (Test-GitBashParent) {
+    Stop-WithBashInstallCommand "检测到你正在 Git Bash 中调用 Windows PowerShell 安装命令。"
+  }
+
+  if (Test-NonWindowsPowerShell) {
+    Stop-WithBashInstallCommand "检测到当前不是 Windows PowerShell 环境，已停止运行 Windows 安装脚本。"
+  }
 }
 
 function Ensure-Source {
@@ -196,6 +256,8 @@ if (-not ($installCursor -or $installCodex -or $installClaude)) {
   Show-Usage
   Fail "请选择安装目标：-Cursor、-Codex、-Claude 或 -All"
 }
+
+Guard-PlatformCommand
 
 try {
   Write-Host ""

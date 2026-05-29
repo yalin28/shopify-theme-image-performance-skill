@@ -60,6 +60,31 @@ ok()    { if plain_output; then echo "  [ok] $*"; else echo "  ✅ $*"; fi; }
 warn()  { if plain_output; then echo "  [warn] $*"; else echo "  ⚠️  $*"; fi; }
 hint()  { if plain_output; then echo "  [hint] $*"; else echo "  💡 $*"; fi; }
 
+target_args_for_powershell() {
+  local args=()
+
+  if [[ "${INSTALL_CURSOR}" -eq 1 && "${INSTALL_CODEX}" -eq 1 && "${INSTALL_CLAUDE}" -eq 1 ]]; then
+    args+=("-All")
+  else
+    [[ "${INSTALL_CURSOR}" -eq 1 ]] && args+=("-Cursor")
+    [[ "${INSTALL_CODEX}" -eq 1 ]] && args+=("-Codex")
+    [[ "${INSTALL_CLAUDE}" -eq 1 ]] && args+=("-Claude")
+  fi
+
+  [[ "${FORCE}" -eq 1 ]] && args+=("-Force")
+
+  printf "%s" "${args[*]}"
+}
+
+print_windows_powershell_install_command() {
+  local target_args
+  target_args="$(target_args_for_powershell)"
+
+  cat >&2 <<EOF
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_REF}/scripts/install.ps1 -OutFile ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')); & ([IO.Path]::Combine([IO.Path]::GetTempPath(), 'install-skill.ps1')) ${target_args} }"
+EOF
+}
+
 usage() {
   cat <<'EOF'
 用法: ./scripts/install.sh [选项]
@@ -170,8 +195,9 @@ guard_cursor_wsl() {
   WSL 的 ~/.cursor/skills 位于 Linux 子系统内，Windows 版 Cursor 不会读取该目录。
   请在 Windows PowerShell 中运行下面的命令：
 
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile $env:TEMP\install-skill.ps1; & $env:TEMP\install-skill.ps1 -Cursor -Force }"
-
+EOF
+    print_windows_powershell_install_command
+    cat >&2 <<'EOF'
   若只想安装 Codex 或 Claude Code 到 WSL，请改用 --codex 或 --claude。
   如果你确实要安装给 WSL 内的 Linux 版 Cursor，可设置 SKILL_ALLOW_WSL_CURSOR=1 后重试。
 EOF
@@ -183,8 +209,9 @@ EOF
   WSL 的 ~/.cursor/skills 位于 Linux 子系统内，Windows 版 Cursor 不会读取该目录。
   请在 Windows PowerShell 中运行下面的命令：
 
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile $env:TEMP\install-skill.ps1; & $env:TEMP\install-skill.ps1 -Cursor -Force }"
-
+EOF
+    print_windows_powershell_install_command
+    cat >&2 <<'EOF'
   若只想安装 Codex 或 Claude Code 到 WSL，请改用 --codex 或 --claude。
   如果你确实要安装给 WSL 内的 Linux 版 Cursor，可设置 SKILL_ALLOW_WSL_CURSOR=1 后重试。
 EOF
