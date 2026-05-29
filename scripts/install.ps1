@@ -43,30 +43,30 @@ function Write-Warn([string]$Message)  { Write-Host "  [warn] $Message" }
 function Write-Hint([string]$Message)  { Write-Host "  [hint] $Message" }
 
 function Show-Usage {
-  Write-Host "用法: .\scripts\install.ps1 [选项]"
+  Write-Host "Usage: .\scripts\install.ps1 [options]"
   Write-Host ""
-  Write-Host "将本仓库中的 Skill 安装到 AI 工具的配置目录（Windows PowerShell）。"
+  Write-Host "Install this Skill into AI tool config directories on Windows PowerShell."
   Write-Host ""
-  Write-Host "选项:"
-  Write-Host "  -Cursor          安装到 %USERPROFILE%\.cursor\skills\<skill-name>\"
-  Write-Host "  -Codex           安装到 %USERPROFILE%\.agents\skills\<skill-name>\，并兼容 %USERPROFILE%\.codex\skills\<skill-name>\"
-  Write-Host "  -Claude          安装到 %USERPROFILE%\.claude\skills\<skill-name>\"
-  Write-Host "  -All             安装到 Cursor + Codex + Claude Code"
-  Write-Host "  -Force           覆盖已存在的安装目录"
-  Write-Host "  -Link            创建目录符号链接（需开发者模式或管理员；失败时请去掉 -Link）"
-  Write-Host "  -Help            显示帮助"
+  Write-Host "Options:"
+  Write-Host "  -Cursor          Install to %USERPROFILE%\.cursor\skills\<skill-name>\"
+  Write-Host "  -Codex           Install to %USERPROFILE%\.agents\skills\<skill-name>\ and %USERPROFILE%\.codex\skills\<skill-name>\"
+  Write-Host "  -Claude          Install to %USERPROFILE%\.claude\skills\<skill-name>\"
+  Write-Host "  -All             Install to Cursor + Codex + Claude Code"
+  Write-Host "  -Force           Replace an existing install directory"
+  Write-Host "  -Link            Create a directory symlink. Requires Developer Mode or admin rights."
+  Write-Host "  -Help            Show help"
   Write-Host ""
-  Write-Host "示例:"
+  Write-Host "Examples:"
   Write-Host "  .\scripts\install.ps1 -Cursor -Force"
   Write-Host "  .\scripts\install.ps1 -Codex"
   Write-Host "  .\scripts\install.ps1 -Claude"
   Write-Host ""
-  Write-Host "远程安装（Windows PowerShell / cmd.exe 均可直接运行）:"
+  Write-Host "Remote install. Works in Windows PowerShell and cmd.exe:"
   Write-Host "  powershell -NoProfile -ExecutionPolicy Bypass -Command `"iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile shopify-install-temp.ps1; .\shopify-install-temp.ps1 -Cursor; Remove-Item shopify-install-temp.ps1`""
   Write-Host "  powershell -NoProfile -ExecutionPolicy Bypass -Command `"iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile shopify-install-temp.ps1; .\shopify-install-temp.ps1 -Codex; Remove-Item shopify-install-temp.ps1`""
   Write-Host "  powershell -NoProfile -ExecutionPolicy Bypass -Command `"iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile shopify-install-temp.ps1; .\shopify-install-temp.ps1 -Claude; Remove-Item shopify-install-temp.ps1`""
   Write-Host ""
-  Write-Host "注意: 本脚本仅适用于 Windows。macOS / Linux / Git Bash 请使用 install.sh，见 README。"
+  Write-Host "Note: This script is for Windows. Use install.sh for macOS, Linux, or Git Bash."
 }
 
 function Fail([string]$Message) {
@@ -80,8 +80,8 @@ function Ensure-Source {
     return
   }
 
-  Write-Step "未检测到本地仓库，正在从 GitHub 获取 Skill 文件..."
-  Write-Info "来源: ${GithubRepo}@${GithubRef}"
+  Write-Step "Local repository not found. Downloading Skill files from GitHub..."
+  Write-Info "Source: ${GithubRepo}@${GithubRef}"
   $base = "https://raw.githubusercontent.com/$GithubRepo/$GithubRef"
   $tmp = Join-Path $env:TEMP "skill-install-$([Guid]::NewGuid().ToString('N'))"
   New-Item -ItemType Directory -Path $tmp -Force | Out-Null
@@ -94,12 +94,12 @@ function Ensure-Source {
       Invoke-WebRequest -Uri "$base/agents/openai.yaml" -OutFile (Join-Path $tmp "agents\openai.yaml") -UseBasicParsing
     }
     catch {
-      # agents 为可选
+      # agents is optional.
     }
   }
   catch {
     Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
-    Fail "下载 Skill 文件失败，请检查网络连接或仓库地址是否正确"
+    Fail "Failed to download Skill files. Check your network connection, repository, or ref."
   }
 
   $Script:SrcDir = $tmp
@@ -107,7 +107,7 @@ function Ensure-Source {
 
 function Test-SkillSource {
   if (-not (Test-Path -LiteralPath (Join-Path $Script:SrcDir "SKILL.md") -PathType Leaf)) {
-    Fail "未找到 SKILL.md，无法继续安装。"
+    Fail "SKILL.md was not found. Cannot continue."
   }
 }
 
@@ -115,7 +115,7 @@ function Install-One([string]$DestRoot, [string]$Label = "") {
   $dest = Join-Path $DestRoot $SkillName
 
   if ($Label) {
-    Write-Step "正在安装到 ${Label}..."
+    Write-Step "Installing to ${Label}..."
   }
 
   if (Test-Path -LiteralPath $dest) {
@@ -123,8 +123,8 @@ function Install-One([string]$DestRoot, [string]$Label = "") {
       Remove-Item -LiteralPath $dest -Recurse -Force
     }
     else {
-      Write-Warn "该路径已存在: $dest"
-      Write-Hint "Skill 之前已安装过，如需覆盖更新请添加 -Force 参数重新运行"
+      Write-Warn "Path already exists: $dest"
+      Write-Hint "The Skill is already installed there. Re-run with -Force to replace it."
       $Script:SkippedCount++
       return
     }
@@ -136,16 +136,16 @@ function Install-One([string]$DestRoot, [string]$Label = "") {
 
   if ($Link) {
     if ($DownloadTmp) {
-      Fail "远程下载模式不支持 -Link，请先 git clone 仓库后再使用链接安装"
+      Fail "Remote download mode does not support -Link. Clone the repository first, then use -Link."
     }
     try {
       New-Item -ItemType SymbolicLink -Path $dest -Target $Script:SrcDir -Force | Out-Null
-      Write-Ok "已通过符号链接安装 -> $dest"
+      Write-Ok "Installed via symlink -> $dest"
       $Script:InstalledCount++
       return
     }
     catch {
-      Fail "创建符号链接失败: $($_.Exception.Message)。请去掉 -Link 改用复制安装，或开启 Windows 开发者模式后以管理员运行。"
+      Fail "Failed to create symlink: $($_.Exception.Message). Remove -Link, or enable Windows Developer Mode and run as administrator."
     }
   }
 
@@ -154,7 +154,7 @@ function Install-One([string]$DestRoot, [string]$Label = "") {
   foreach ($file in $SkillFiles) {
     $src = Join-Path $Script:SrcDir $file
     if (-not (Test-Path -LiteralPath $src -PathType Leaf)) {
-      Fail "缺少源文件: $src"
+      Fail "Missing source file: $src"
     }
     Copy-Item -LiteralPath $src -Destination (Join-Path $dest $file) -Force
   }
@@ -166,7 +166,7 @@ function Install-One([string]$DestRoot, [string]$Label = "") {
     }
   }
 
-  Write-Ok "安装完成 -> $dest"
+  Write-Ok "Installed -> $dest"
   $Script:InstalledCount++
 }
 
@@ -180,9 +180,9 @@ function Install-Codex([string]$HomeDir) {
   $codexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $HomeDir ".codex" }
   $legacyRoot = Join-Path $codexHome "skills"
 
-  Install-One $standardRoot "Codex (标准路径)"
+  Install-One $standardRoot "Codex (standard path)"
   if ($legacyRoot -ne $standardRoot) {
-    Install-One $legacyRoot "Codex (兼容路径)"
+    Install-One $legacyRoot "Codex (compatibility path)"
   }
 }
 
@@ -203,12 +203,12 @@ if ($All) {
 
 if (-not ($installCursor -or $installCodex -or $installClaude)) {
   Show-Usage
-  Fail "请选择安装目标：-Cursor、-Codex、-Claude 或 -All"
+  Fail "Choose an install target: -Cursor, -Codex, -Claude, or -All"
 }
 
 try {
   Write-Host ""
-  Write-Host "  $SkillDisplay - Skill 安装程序"
+  Write-Host "  $SkillDisplay - Skill Installer"
   Write-Host "  -----------------------------------------"
   Write-Host ""
 
@@ -217,7 +217,7 @@ try {
 
   $homeDir = Get-UserHome
   if (-not $homeDir) {
-    Fail "无法解析用户主目录（USERPROFILE / HOME 未设置）。"
+    Fail "Could not resolve the user home directory. USERPROFILE and HOME are not set."
   }
 
   if ($installCursor) {
@@ -234,20 +234,20 @@ try {
   Write-Host "  -----------------------------------------"
 
   if ($Script:InstalledCount -gt 0 -and $Script:SkippedCount -eq 0) {
-    Write-Host "  [success] 安装成功！"
+    Write-Host "  [success] Installed successfully."
   }
   elseif ($Script:InstalledCount -gt 0 -and $Script:SkippedCount -gt 0) {
-    Write-Host "  [success] 安装成功（$($Script:SkippedCount) 个目标已存在，已跳过）"
+    Write-Host "  [success] Installed successfully. Skipped $($Script:SkippedCount) existing target(s)."
   }
   elseif ($Script:SkippedCount -gt 0) {
-    Write-Host "  [info] 所有目标均已安装过，无需重复操作"
-    Write-Hint "如需覆盖更新，请使用 -Force 参数"
+    Write-Host "  [info] All selected targets were already installed."
+    Write-Hint "Use -Force to replace existing installs."
   }
 
   Write-Host ""
   if ($installCodex -and $Script:InstalledCount -gt 0) {
     Write-Host ""
-    Write-Info "Codex 用户请重启终端以加载新安装的 Skill"
+    Write-Info "Restart your terminal so Codex can load the newly installed Skill."
   }
   Write-Host ""
 }

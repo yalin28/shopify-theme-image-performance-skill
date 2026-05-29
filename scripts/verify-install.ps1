@@ -12,7 +12,7 @@ function Get-UserHome {
 
 function Test-Install([string]$Label, [string]$Dir) {
   if (-not (Test-Path -LiteralPath $Dir -PathType Container)) {
-    Write-Host "[missing] ${Label}: 未安装 ($Dir)"
+    Write-Host "[missing] ${Label}: not installed ($Dir)"
     return
   }
 
@@ -20,13 +20,13 @@ function Test-Install([string]$Label, [string]$Dir) {
     -not (Test-Path -LiteralPath (Join-Path $Dir $_) -PathType Leaf)
   }
   if ($missing.Count -gt 0) {
-    Write-Host "[error] ${Label}: 缺少 $($missing -join ', ') ($Dir)"
+    Write-Host "[error] ${Label}: missing $($missing -join ', ') ($Dir)"
     return
   }
 
   $nameOk = Select-String -LiteralPath (Join-Path $Dir "SKILL.md") -Pattern "^name: $SkillName" -Quiet
   if (-not $nameOk) {
-    Write-Host "[error] ${Label}: SKILL.md 中 name 字段应为 $SkillName ($Dir)"
+    Write-Host "[error] ${Label}: SKILL.md name should be $SkillName ($Dir)"
     return
   }
 
@@ -35,21 +35,21 @@ function Test-Install([string]$Label, [string]$Dir) {
 }
 
 $homeDir = Get-UserHome
-Write-Host "检查 Skill 安装: $SkillName"
+Write-Host "Checking Skill install: $SkillName"
 Write-Host ""
 
-Test-Install "Cursor（个人）" (Join-Path $homeDir ".cursor\skills\$SkillName")
+Test-Install "Cursor (personal)" (Join-Path $homeDir ".cursor\skills\$SkillName")
 $codexStandardRoot = if ($env:CODEX_AGENT_SKILLS_DIR) { $env:CODEX_AGENT_SKILLS_DIR } else { Join-Path $homeDir ".agents\skills" }
-Test-Install "Codex（个人标准）" (Join-Path $codexStandardRoot $SkillName)
+Test-Install "Codex (personal standard)" (Join-Path $codexStandardRoot $SkillName)
 $codexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $homeDir ".codex" }
-Test-Install "Codex（个人兼容）" (Join-Path $codexHome "skills\$SkillName")
-Test-Install "Claude Code（个人）" (Join-Path $homeDir ".claude\skills\$SkillName")
+Test-Install "Codex (personal compatibility)" (Join-Path $codexHome "skills\$SkillName")
+Test-Install "Claude Code (personal)" (Join-Path $homeDir ".claude\skills\$SkillName")
 
 Write-Host ""
 if ($Found -gt 0) {
-  Write-Host "已检测到 $Found 处有效安装。若 Agent 未识别 Skill，请重启 IDE 或新开对话。"
+  Write-Host "Found $Found valid install(s). Restart the IDE or start a new chat if the Agent does not detect the Skill."
   exit 0
 }
 
-Write-Host "未发现有效安装。请按目标平台运行: .\scripts\install.ps1 -Cursor、-Codex 或 -Claude"
+Write-Host "No valid install found. Run .\scripts\install.ps1 -Cursor, -Codex, or -Claude for your target tool."
 exit 1
