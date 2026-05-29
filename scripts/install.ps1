@@ -25,11 +25,11 @@ $Script:SkippedCount = 0
 $SkillFiles = @("SKILL.md")
 $OptionalDirs = @("agents")
 
-function Write-Info([string]$Message)  { Write-Host "  $(([char]0x1F4AC)) $Message" }
-function Write-Step([string]$Message)  { Write-Host "  $([char]0x25B8) $Message" }
-function Write-Ok([string]$Message)    { Write-Host "  $([char]0x2705) $Message" }
-function Write-Warn([string]$Message)  { Write-Host "  $([char]0x26A0)$([char]0xFE0F)  $Message" }
-function Write-Hint([string]$Message)  { Write-Host "  $([char]0x1F4A1) $Message" }
+function Write-Info([string]$Message)  { Write-Host "  [info] $Message" }
+function Write-Step([string]$Message)  { Write-Host "  > $Message" }
+function Write-Ok([string]$Message)    { Write-Host "  [ok] $Message" }
+function Write-Warn([string]$Message)  { Write-Host "  [warn] $Message" }
+function Write-Hint([string]$Message)  { Write-Host "  [hint] $Message" }
 
 function Show-Usage {
   @"
@@ -62,7 +62,7 @@ macOS / Linux / Git Bash 请使用: ./scripts/install.sh
 
 function Fail([string]$Message) {
   Write-Host ""
-  Write-Host "  $([char]0x274C) $Message" -ForegroundColor Red
+  Write-Host "  [error] $Message" -ForegroundColor Red
   exit 1
 }
 
@@ -199,8 +199,8 @@ if (-not ($installCursor -or $installCodex -or $installClaude)) {
 
 try {
   Write-Host ""
-  Write-Host "  $([char]0x1F680) $SkillDisplay — Skill 安装程序"
-  Write-Host "  $([char]0x2500 * 41)"
+  Write-Host "  $SkillDisplay - Skill 安装程序"
+  Write-Host "  -----------------------------------------"
   Write-Host ""
 
   Ensure-Source
@@ -222,16 +222,16 @@ try {
   }
 
   Write-Host ""
-  Write-Host "  $([char]0x2500 * 41)"
+  Write-Host "  -----------------------------------------"
 
   if ($Script:InstalledCount -gt 0 -and $Script:SkippedCount -eq 0) {
-    Write-Host "  $([char]0x1F389) 安装成功！"
+    Write-Host "  [success] 安装成功！"
   }
   elseif ($Script:InstalledCount -gt 0 -and $Script:SkippedCount -gt 0) {
-    Write-Host "  $([char]0x1F389) 安装成功（$($Script:SkippedCount) 个目标已存在，已跳过）"
+    Write-Host "  [success] 安装成功（$($Script:SkippedCount) 个目标已存在，已跳过）"
   }
   elseif ($Script:SkippedCount -gt 0) {
-    Write-Host "  $([char]0x2139)$([char]0xFE0F)  所有目标均已安装过，无需重复操作"
+    Write-Host "  [info] 所有目标均已安装过，无需重复操作"
     Write-Hint "如需覆盖更新，请使用 -Force 参数"
   }
 

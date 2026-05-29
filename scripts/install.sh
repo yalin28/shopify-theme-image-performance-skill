@@ -29,11 +29,36 @@ cleanup() {
 }
 trap cleanup EXIT
 
-info()  { echo "  💬 $*"; }
-step()  { echo "  ▸ $*"; }
-ok()    { echo "  ✅ $*"; }
-warn()  { echo "  ⚠️  $*"; }
-hint()  { echo "  💡 $*"; }
+plain_output() {
+  if [[ "${SKILL_INSTALL_PLAIN_OUTPUT:-}" == "1" ]]; then
+    return 0
+  fi
+  if [[ "${SKILL_INSTALL_EMOJI:-}" == "1" ]]; then
+    return 1
+  fi
+  if is_wsl; then
+    return 0
+  fi
+
+  case "$(uname -s 2>/dev/null || true)" in
+    MINGW*|MSYS*|CYGWIN*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+line() {
+  if plain_output; then
+    echo "  -----------------------------------------"
+  else
+    echo "  ─────────────────────────────────────────"
+  fi
+}
+
+info()  { if plain_output; then echo "  [info] $*"; else echo "  💬 $*"; fi; }
+step()  { if plain_output; then echo "  > $*"; else echo "  ▸ $*"; fi; }
+ok()    { if plain_output; then echo "  [ok] $*"; else echo "  ✅ $*"; fi; }
+warn()  { if plain_output; then echo "  [warn] $*"; else echo "  ⚠️  $*"; fi; }
+hint()  { if plain_output; then echo "  [hint] $*"; else echo "  💡 $*"; fi; }
 
 usage() {
   cat <<'EOF'
@@ -66,7 +91,104 @@ EOF
 
 die() {
   echo "" >&2
-  echo "  ❌ $*" >&2
+  if plain_output; then
+    echo "  [error] $*" >&2
+  else
+    echo "  ❌ $*" >&2
+  fi
+  exit 1
+}
+
+is_wsl() {
+  if [[ -n "${WSL_DISTRO_NAME:-}" || -n "${WSL_INTEROP:-}" ]]; then
+    return 0
+  fi
+
+  [[ -r /proc/version ]] && grep -qiE "microsoft|wsl" /proc/version
+}
+
+is_windows_bash() {
+  case "$(uname -s 2>/dev/null || true)" in
+    MINGW*|MSYS*|CYGWIN*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+windows_path_to_posix() {
+  local path="$1"
+
+  if command -v cygpath >/dev/null 2>&1; then
+    local converted
+    if converted="$(cygpath -u "${path}" 2>/dev/null)" && [[ -n "${converted}" ]]; then
+      printf "%s" "${converted}"
+      return
+    fi
+  fi
+
+  case "${path}" in
+    [A-Za-z]:\\*)
+      local drive
+      local rest
+      drive="$(printf "%s" "${path:0:1}" | tr "[:upper:]" "[:lower:]")"
+      rest="${path:2}"
+      rest="${rest//\\//}"
+      printf "/%s%s" "${drive}" "${rest}"
+      return
+      ;;
+  esac
+
+  printf "%s" "${path}"
+}
+
+cursor_dest_root() {
+  if is_windows_bash && [[ -n "${USERPROFILE:-}" ]]; then
+    local user_profile
+    user_profile="$(windows_path_to_posix "${USERPROFILE}")"
+    if [[ -n "${user_profile}" ]]; then
+      printf "%s/.cursor/skills" "${user_profile}"
+      return
+    fi
+  fi
+
+  printf "%s/.cursor/skills" "${HOME}"
+}
+
+guard_cursor_wsl() {
+  if [[ "${INSTALL_CURSOR}" -ne 1 || "${SKILL_ALLOW_WSL_CURSOR:-}" == "1" ]]; then
+    return 0
+  fi
+
+  if ! is_wsl; then
+    return 0
+  fi
+
+  if plain_output; then
+    cat >&2 <<'EOF'
+
+  [error] 检测到当前命令运行在 WSL 中，已停止安装 Cursor Skill。
+
+  WSL 的 ~/.cursor/skills 位于 Linux 子系统内，Windows 版 Cursor 不会读取该目录。
+  请在 Windows PowerShell 中运行下面的命令：
+
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile $env:TEMP\install-skill.ps1; & $env:TEMP\install-skill.ps1 -Cursor -Force }"
+
+  若只想安装 Codex 或 Claude Code 到 WSL，请改用 --codex 或 --claude。
+  如果你确实要安装给 WSL 内的 Linux 版 Cursor，可设置 SKILL_ALLOW_WSL_CURSOR=1 后重试。
+EOF
+  else
+    cat >&2 <<'EOF'
+
+  ❌ 检测到当前命令运行在 WSL 中，已停止安装 Cursor Skill。
+
+  WSL 的 ~/.cursor/skills 位于 Linux 子系统内，Windows 版 Cursor 不会读取该目录。
+  请在 Windows PowerShell 中运行下面的命令：
+
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile $env:TEMP\install-skill.ps1; & $env:TEMP\install-skill.ps1 -Cursor -Force }"
+
+  若只想安装 Codex 或 Claude Code 到 WSL，请改用 --codex 或 --claude。
+  如果你确实要安装给 WSL 内的 Linux 版 Cursor，可设置 SKILL_ALLOW_WSL_CURSOR=1 后重试。
+EOF
+  fi
   exit 1
 }
 
@@ -120,7 +242,7 @@ install_one() {
       die "远程下载模式不支持 --link，请先 git clone 仓库后再使用链接安装"
     fi
     ln -s "${SRC_DIR}" "${dest}"
-    ok "已通过符号链接安装 → ${dest}"
+    ok "已通过符号链接安装 -> ${dest}"
     INSTALLED_COUNT=$((INSTALLED_COUNT + 1))
     return
   fi
@@ -134,7 +256,7 @@ install_one() {
       cp -R "${SRC_DIR}/${d}" "${dest}/"
     fi
   done
-  ok "安装完成 → ${dest}"
+  ok "安装完成 -> ${dest}"
   INSTALLED_COUNT=$((INSTALLED_COUNT + 1))
 }
 
@@ -183,9 +305,15 @@ main() {
   parse_args "$@"
 
   echo ""
-  echo "  🚀 ${SKILL_DISPLAY} — Skill 安装程序"
-  echo "  ─────────────────────────────────────────"
+  if plain_output; then
+    echo "  ${SKILL_DISPLAY} - Skill 安装程序"
+  else
+    echo "  🚀 ${SKILL_DISPLAY} — Skill 安装程序"
+  fi
+  line
   echo ""
+
+  guard_cursor_wsl
 
   ensure_source
   require_skill_source
@@ -195,7 +323,7 @@ main() {
   fi
 
   if [[ "${INSTALL_CURSOR}" -eq 1 ]]; then
-    install_one "${HOME}/.cursor/skills" "Cursor"
+    install_one "$(cursor_dest_root)" "Cursor"
   fi
   if [[ "${INSTALL_CODEX}" -eq 1 ]]; then
     install_codex
@@ -205,14 +333,26 @@ main() {
   fi
 
   echo ""
-  echo "  ─────────────────────────────────────────"
+  line
 
   if [[ "${INSTALLED_COUNT}" -gt 0 && "${SKIPPED_COUNT}" -eq 0 ]]; then
-    echo "  🎉 安装成功！"
+    if plain_output; then
+      echo "  [success] 安装成功！"
+    else
+      echo "  🎉 安装成功！"
+    fi
   elif [[ "${INSTALLED_COUNT}" -gt 0 && "${SKIPPED_COUNT}" -gt 0 ]]; then
-    echo "  🎉 安装成功（${SKIPPED_COUNT} 个目标已存在，已跳过）"
+    if plain_output; then
+      echo "  [success] 安装成功（${SKIPPED_COUNT} 个目标已存在，已跳过）"
+    else
+      echo "  🎉 安装成功（${SKIPPED_COUNT} 个目标已存在，已跳过）"
+    fi
   elif [[ "${SKIPPED_COUNT}" -gt 0 ]]; then
-    echo "  ℹ️  所有目标均已安装过，无需重复操作"
+    if plain_output; then
+      echo "  [info] 所有目标均已安装过，无需重复操作"
+    else
+      echo "  ℹ️  所有目标均已安装过，无需重复操作"
+    fi
     hint "如需覆盖更新，请使用 --force 参数"
   fi
 

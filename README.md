@@ -54,6 +54,8 @@ Claude Code：
 powershell -NoProfile -ExecutionPolicy Bypass -Command "& { iwr -useb https://raw.githubusercontent.com/yalin28/shopify-theme-image-performance-skill/main/scripts/install.ps1 -OutFile $env:TEMP\install-skill.ps1; & $env:TEMP\install-skill.ps1 -Claude }"
 ```
 
+Windows Cursor 推荐使用上面的 PowerShell 命令。Windows 输出默认使用 `[ok]`、`[warn]` 等 ASCII 状态标记，避免 cmd / PowerShell 旧终端 emoji 乱码。Git Bash 会自动解析到 `%USERPROFILE%\.cursor\skills`；WSL 会被 bash 安装脚本拦截，因为 Windows 版 Cursor 不读取 WSL 的 `~/.cursor/skills`。
+
 ## 安装位置
 
 | 平台 | 安装目录 |
@@ -85,6 +87,7 @@ Skill 会按两阶段执行：
 |------|------|
 | 安装目录已存在 | 删除旧目录后，重新运行对应平台的远程安装命令 |
 | PowerShell 禁止运行脚本 | 使用 README 中的 `-ExecutionPolicy Bypass` 命令 |
+| Windows Cursor 看不到 Skill，终端显示安装到 `/home/.../.cursor/skills` | 这是在 WSL 中运行了 bash 安装命令；Windows 版 Cursor 不读取 WSL 目录。请改用 Windows PowerShell 的 `install.ps1 -Cursor -Force` 命令 |
 | Codex 看不到 Skill | 确认 `~/.agents/skills/` 和兼容路径 `~/.codex/skills/`，然后重启 Codex |
 | Agent 没有自动触发 | 新开对话，或显式提及 `shopify-theme-image-performance` |
 

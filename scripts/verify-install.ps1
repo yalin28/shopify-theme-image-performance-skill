@@ -12,7 +12,7 @@ function Get-UserHome {
 
 function Test-Install([string]$Label, [string]$Dir) {
   if (-not (Test-Path -LiteralPath $Dir -PathType Container)) {
-    Write-Host "○ ${Label}: 未安装 ($Dir)"
+    Write-Host "[missing] ${Label}: 未安装 ($Dir)"
     return
   }
 
@@ -20,17 +20,17 @@ function Test-Install([string]$Label, [string]$Dir) {
     -not (Test-Path -LiteralPath (Join-Path $Dir $_) -PathType Leaf)
   }
   if ($missing.Count -gt 0) {
-    Write-Host "✗ ${Label}: 缺少 $($missing -join ', ') ($Dir)"
+    Write-Host "[error] ${Label}: 缺少 $($missing -join ', ') ($Dir)"
     return
   }
 
   $nameOk = Select-String -LiteralPath (Join-Path $Dir "SKILL.md") -Pattern "^name: $SkillName" -Quiet
   if (-not $nameOk) {
-    Write-Host "✗ ${Label}: SKILL.md 中 name 字段应为 $SkillName ($Dir)"
+    Write-Host "[error] ${Label}: SKILL.md 中 name 字段应为 $SkillName ($Dir)"
     return
   }
 
-  Write-Host "✓ ${Label}: $Dir"
+  Write-Host "[ok] ${Label}: $Dir"
   $script:Found++
 }
 
