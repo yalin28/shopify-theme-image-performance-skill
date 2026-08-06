@@ -1,13 +1,15 @@
 ---
 name: shopify-theme-image-performance
 description: >-
-  Never edit files on the first response. The first response must be
-  read-only analysis only. Optimizes image loading in Shopify theme sections
-  and snippets without changing visual layout. Audits CSS to derive responsive
-  sizes/widths, migrates legacy img_url to image_url/image_tag, chooses between
-  <picture> and single image_tag, and tunes loading/fetchpriority. Always
-  analyzes and lists P0-Pn priorities first; only implements after the user
-  explicitly confirms one priority.
+  Optimizes image loading in Shopify theme sections and snippets without
+  changing visual layout (CSS-derived sizes/widths, img_url→image_url/image_tag,
+  picture vs image_tag, loading/fetchpriority; P0–Pn analysis first). ONLY use
+  when the user explicitly invokes the full skill name
+  $shopify-theme-image-performance (or mentions shopify-theme-image-performance).
+  Do not auto-trigger from ambient image/LCP/img_url/picture talk alone.
+  Never edit files on the first response — read-only analysis only until the
+  user confirms one priority.
+disable-model-invocation: true
 ---
 
 # Shopify 主题图片性能优化
@@ -40,15 +42,21 @@ description: >-
 
 ## 何时触发本 skill
 
-满足以下任一情形时使用：
+**仅当用户显式调用完整技能名时启用。** 调用名称为 `shopify-theme-image-performance`。
 
-- 用户要求"优化 section/snippet 的图片加载、首屏速度、LCP"
-- 出现 `img_url` / `img_url: 'small'` / `replace: '_small'` 等遗留写法需要迁移到 `image_url` / `image_tag`
-- 出现 PC/移动两套 `<img>` 配合 `hideMobile` / `hideDesktop` 等 CSS 隐藏的写法
-- 需要为现有 `<img>` 补 `srcset` / `sizes` / `widths`，或决定 `<picture>` vs `image_tag`
-- 投流 / 落地页 section 图片体积、请求数明显偏大
+合法触发示例：
 
-不适用：纯 JS / video / schema / 第三方脚本性能问题（见"超出本 skill 范围"）。
+```text
+用 $shopify-theme-image-performance 分析 sections/xxx.liquid
+```
+
+```text
+按 shopify-theme-image-performance 优化这个 section 的图片加载
+```
+
+**不要触发：** 用户只谈图片优化、LCP、`img_url`、`picture`、`sizes` 等，但未写出完整名称 `shopify-theme-image-performance` / `$shopify-theme-image-performance`。
+
+不适用：纯 JS / video / schema / 第三方脚本性能问题（见"超出本 skill 范围"）。即使已显式调用，这些项仍标为超出范围，不纳入 P0–P2。
 
 ## 目标
 

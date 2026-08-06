@@ -2,7 +2,11 @@
 
 Cursor / Codex / Claude Code 共用的 **Agent Skill**：系统化优化 Shopify 主题 section/snippet 中的图片加载，在**不改变视觉布局**的前提下减少请求数与传输体积。
 
+调用名称为 `shopify-theme-image-performance`。须按完整名称显式调用（如 `$shopify-theme-image-performance`），不会因图片优化相关话题自动触发。
+
 ## 适用场景
+
+以下是本 Skill **能处理**的问题类型（仍须显式调用才会启用）：
 
 - Section / snippet 图片加载慢、原图直出
 - PC/移动双 `<img>` + CSS 隐藏导致重复下载
@@ -83,11 +87,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr -useb https://raw.gi
 
 ## 使用方式
 
-在 Shopify 主题项目中打开 Agent，例如：
+按完整技能名显式调用（不会因「优化图片 / LCP」等话题自动触发）：
 
-- 「优化这个 section 的图片加载」
-- 「按 shopify-theme-image-performance 分析 `sections/xxx.liquid`」
-- 「确认，先做 P0」
+```text
+用 $shopify-theme-image-performance 分析 sections/xxx.liquid
+```
+
+也可以：
+
+```text
+按 shopify-theme-image-performance 优化这个 section 的图片加载
+```
+
+确认某一优先级后再实施，例如：「确认，先做 P0」。
 
 Skill 会按两阶段执行：
 
@@ -105,7 +117,7 @@ Skill 会按两阶段执行：
 | PowerShell 禁止运行脚本 | 使用 README 中的 `-ExecutionPolicy Bypass` 命令 |
 | Windows Cursor 看不到 Skill，终端显示安装到 `/home/.../.cursor/skills` | 这是在 WSL 中运行了 bash 安装命令；Windows 版 Cursor 不读取 WSL 目录。请改用 PowerShell 命令 |
 | Codex 看不到 Skill | 确认 `~/.agents/skills/` 和兼容路径 `~/.codex/skills/`，然后重启 Codex |
-| Agent 没有自动触发 | 新开对话，或显式提及 `shopify-theme-image-performance` |
+| Agent 没有触发本 Skill | 本 Skill **不会**自动触发；请显式写 `$shopify-theme-image-performance` 或完整名称 `shopify-theme-image-performance` |
 
 ## 相关依赖
 
